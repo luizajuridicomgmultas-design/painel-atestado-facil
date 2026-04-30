@@ -437,70 +437,90 @@ function Empty({ text }) {
 }
 
 function badgeStyle(status) {
-  if (status === STATUS.ATIVO) return { background: "#dcfce7", color: "#166534" };
-  if (status === STATUS.BLOQUEADO) return { background: "#fee2e2", color: "#991b1b" };
-  if (status === STATUS.VENCIDO) return { background: "#fef3c7", color: "#92400e" };
-  return { background: "#dbeafe", color: "#1d4ed8" };
+  if (status === STATUS.ATIVO) return { background: "#e6f4ec", color: "#15803d", border: "1px solid #c8e6d4" };
+  if (status === STATUS.BLOQUEADO) return { background: "#fdecec", color: "#b91c1c", border: "1px solid #f5cfcf" };
+  if (status === STATUS.VENCIDO) return { background: "#fdf3e0", color: "#a16207", border: "1px solid #f3e1bd" };
+  return { background: "#e8efff", color: "#1e40af", border: "1px solid #d4e0f7" };
 }
 
 const styles = {
-  loginPage: { minHeight: "100vh", background: "#f3f7ff", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Inter, Arial, sans-serif" },
-  loginCard: { width: "100%", maxWidth: 390, background: "white", borderRadius: 28, padding: 28, boxShadow: "0 24px 60px rgba(15,23,42,.14)", border: "1px solid #dbeafe" },
-  logo: { width: 52, height: 52, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: "#1d4ed8", color: "white", fontWeight: 900, fontSize: 20, marginBottom: 18 },
-  loginTitle: { margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.05 },
-  loginText: { color: "#475569", fontWeight: 700, marginBottom: 22, lineHeight: 1.5 },
-  hint: { display: "block", marginTop: 14, color: "#94a3b8", fontWeight: 700 },
-  page: { minHeight: "100vh", background: "#f1f5fb", color: "#0f172a", display: "flex", fontFamily: "Inter, Arial, sans-serif" },
-  sidebar: { width: 250, background: "#081225", color: "white", padding: 22, display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box" },
-  brandBox: { display: "flex", gap: 12, alignItems: "center", marginBottom: 28 },
-  logoSmall: { width: 44, height: 44, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "#1d4ed8", color: "white", fontWeight: 900 },
-  mutedBlock: { display: "block", color: "#94a3b8", fontSize: 13, fontWeight: 700, marginTop: 3 },
-  menuActive: { width: "100%", padding: "13px 14px", borderRadius: 14, border: 0, background: "#1d4ed8", color: "white", fontWeight: 900, textAlign: "left", marginBottom: 8, cursor: "pointer" },
-  menuButton: { width: "100%", padding: "13px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "#cbd5e1", fontWeight: 900, textAlign: "left", cursor: "pointer", marginBottom: 8 },
-  logoutButton: { padding: 13, borderRadius: 14, border: 0, background: "#dc2626", color: "white", fontWeight: 900, cursor: "pointer" },
-  main: { flex: 1, padding: 30, maxWidth: 1280, margin: "0 auto", boxSizing: "border-box" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, marginBottom: 22 },
-  eyebrow: { color: "#1d4ed8", fontWeight: 900, textTransform: "uppercase", fontSize: 12, letterSpacing: 1 },
-  title: { fontSize: 36, margin: "5px 0", letterSpacing: -1.2, lineHeight: 1.05 },
-  subtitle: { color: "#64748b", margin: 0, fontWeight: 700 },
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: 14 },
-  statCard: { background: "white", border: "1px solid #dbeafe", borderRadius: 22, padding: 20, textAlign: "left", cursor: "pointer", boxShadow: "0 12px 30px rgba(15,23,42,.06)" },
-  statNumber: { display: "block", fontSize: 30, fontWeight: 950, color: "#1d4ed8" },
-  statLabel: { display: "block", color: "#475569", fontWeight: 900, marginTop: 4 },
-  panelCard: { background: "white", border: "1px solid #dbeafe", borderRadius: 24, padding: 22, display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", boxShadow: "0 12px 30px rgba(15,23,42,.06)", marginBottom: 16 },
-  sectionTitle: { margin: 0, fontSize: 24 },
-  sectionText: { margin: "6px 0 0", color: "#64748b", fontWeight: 700 },
-  toolbar: { background: "white", borderRadius: 22, padding: 12, display: "flex", gap: 10, boxShadow: "0 12px 30px rgba(15,23,42,.06)", border: "1px solid #dbeafe", marginBottom: 16 },
-  searchInput: { flex: 1, border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "13px 15px", fontSize: 15, outline: "none", fontWeight: 700, boxSizing: "border-box" },
-  select: { border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "13px 15px", fontWeight: 900 },
-  input: { width: "100%", boxSizing: "border-box", padding: "14px 15px", borderRadius: 16, border: "1px solid #dbe3ef", marginBottom: 12, fontSize: 15, outline: "none", background: "#f8fafc", color: "#0f172a", fontWeight: 700 },
-  smallInput: { width: 76, padding: "12px", borderRadius: 14, border: "1px solid #dbe3ef", fontWeight: 900 },
-  primaryButton: { width: "100%", padding: 15, border: 0, borderRadius: 16, background: "#1d4ed8", color: "white", fontWeight: 950, fontSize: 16, cursor: "pointer" },
-  primarySmall: { border: 0, borderRadius: 16, background: "#1d4ed8", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
-  secondaryButton: { border: 0, borderRadius: 16, background: "#0f172a", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
-  darkButton: { border: 0, borderRadius: 16, background: "#0f172a", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
-  inlineActions: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
-  cardList: { display: "grid", gap: 14 },
-  codeCard: { background: "white", borderRadius: 24, padding: 20, boxShadow: "0 12px 30px rgba(15,23,42,.06)", border: "1px solid #dbeafe" },
-  codeHeader: { display: "flex", justifyContent: "space-between", gap: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 14, marginBottom: 14 },
-  codeLabel: { color: "#64748b", fontWeight: 900, fontSize: 12, textTransform: "uppercase" },
-  code: { margin: "4px 0 0", fontSize: 26, letterSpacing: 1 },
-  badge: { padding: "7px 11px", borderRadius: 999, fontWeight: 950, fontSize: 12, whiteSpace: "nowrap", display: "inline-block" },
-  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(140px, 1fr))", gap: 10 },
-  infoItem: { background: "#f8fafc", borderRadius: 16, padding: 12, border: "1px solid #e2e8f0" },
-  actions: { display: "flex", gap: 9, flexWrap: "wrap", marginTop: 14 },
-  actionButton: { border: 0, borderRadius: 13, background: "#1d4ed8", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  dangerButton: { border: 0, borderRadius: 13, background: "#dc2626", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  successButton: { border: 0, borderRadius: 13, background: "#16a34a", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  neutralButton: { border: 0, borderRadius: 13, background: "#e2e8f0", color: "#0f172a", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  tableCard: { background: "white", borderRadius: 24, border: "1px solid #dbeafe", boxShadow: "0 12px 30px rgba(15,23,42,.06)", overflow: "hidden" },
-  row: { display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr", gap: 12, alignItems: "center", padding: 16, borderBottom: "1px solid #e2e8f0" },
-  rowActions: { display: "flex", gap: 8, flexWrap: "wrap" },
-  empty: { textAlign: "center", background: "white", borderRadius: 24, padding: 38, color: "#64748b" },
-  modalBg: { position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 },
-  modal: { width: "100%", maxWidth: 900, background: "white", borderRadius: 26, padding: 24, boxShadow: "0 30px 90px rgba(0,0,0,.3)" },
-  modalHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18 },
-  modalTitle: { margin: "4px 0 0", fontSize: 28 },
-  closeButton: { border: 0, borderRadius: 13, background: "#e2e8f0", padding: "10px 14px", fontWeight: 900, cursor: "pointer" },
-  note: { background: "#eff6ff", border: "1px solid #bfdbfe", padding: 12, borderRadius: 14, color: "#1e3a8a", fontWeight: 800 },
+  // ===== Login =====
+  loginPage: { minHeight: "100vh", background: "linear-gradient(180deg,#f6f9ff 0%,#eef3fb 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Inter, system-ui, -apple-system, Arial, sans-serif", color: "#0f1e3d" },
+  loginCard: { width: "100%", maxWidth: 380, background: "white", borderRadius: 16, padding: 32, boxShadow: "0 8px 28px rgba(15,30,80,.08)", border: "1px solid #e3eaf5" },
+  logo: { width: 44, height: 44, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "#1e40af", color: "white", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, marginBottom: 20 },
+  loginTitle: { margin: 0, color: "#0f1e3d", fontSize: 20, fontWeight: 600, letterSpacing: -0.2 },
+  loginText: { color: "#5a6b85", fontSize: 13.5, fontWeight: 400, margin: "6px 0 22px", lineHeight: 1.5 },
+  hint: { display: "block", marginTop: 14, color: "#94a3b8", fontWeight: 400, fontSize: 12 },
+
+  // ===== Layout =====
+  page: { minHeight: "100vh", background: "#f4f7fb", color: "#0f1e3d", display: "flex", fontFamily: "Inter, system-ui, -apple-system, Arial, sans-serif", fontSize: 14 },
+  sidebar: { width: 220, background: "#0b1830", color: "#cbd5e1", padding: "22px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box", borderRight: "1px solid #0a1428" },
+  brandBox: { display: "flex", gap: 10, alignItems: "center", marginBottom: 26, padding: "0 4px" },
+  logoSmall: { width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "#1e40af", color: "white", fontWeight: 700, fontSize: 12, letterSpacing: 0.5 },
+  mutedBlock: { display: "block", color: "#7e8da6", fontSize: 11.5, fontWeight: 400, marginTop: 1 },
+  menuActive: { width: "100%", padding: "9px 12px", borderRadius: 8, border: 0, background: "#1e40af", color: "white", fontWeight: 500, fontSize: 13.5, textAlign: "left", marginBottom: 4, cursor: "pointer" },
+  menuButton: { width: "100%", padding: "9px 12px", borderRadius: 8, border: 0, background: "transparent", color: "#cbd5e1", fontWeight: 400, fontSize: 13.5, textAlign: "left", cursor: "pointer", marginBottom: 4 },
+  logoutButton: { padding: "9px 12px", borderRadius: 8, border: "1px solid #1e2b46", background: "transparent", color: "#cbd5e1", fontWeight: 500, fontSize: 13, cursor: "pointer" },
+
+  main: { flex: 1, padding: "28px 32px", maxWidth: 1240, margin: "0 auto", boxSizing: "border-box" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, marginBottom: 22, paddingBottom: 16, borderBottom: "1px solid #e3eaf5" },
+  eyebrow: { color: "#1e40af", fontWeight: 600, textTransform: "uppercase", fontSize: 10.5, letterSpacing: 1.2 },
+  title: { fontSize: 22, margin: "4px 0 2px", letterSpacing: -0.3, lineHeight: 1.2, fontWeight: 600, color: "#0f1e3d" },
+  subtitle: { color: "#6b7a93", margin: 0, fontWeight: 400, fontSize: 13 },
+
+  // ===== Dashboard =====
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: 12 },
+  statCard: { background: "white", border: "1px solid #e3eaf5", borderRadius: 10, padding: "16px 18px", textAlign: "left", cursor: "pointer", boxShadow: "0 1px 2px rgba(15,30,80,.03)", transition: "border-color .15s, box-shadow .15s" },
+  statNumber: { display: "block", fontSize: 22, fontWeight: 600, color: "#1e40af", letterSpacing: -0.3 },
+  statLabel: { display: "block", color: "#6b7a93", fontWeight: 500, marginTop: 3, fontSize: 12.5 },
+
+  // ===== Painel / Toolbar =====
+  panelCard: { background: "white", border: "1px solid #e3eaf5", borderRadius: 10, padding: "16px 18px", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", marginBottom: 14, flexWrap: "wrap" },
+  sectionTitle: { margin: 0, fontSize: 15, fontWeight: 600, color: "#0f1e3d" },
+  sectionText: { margin: "3px 0 0", color: "#6b7a93", fontWeight: 400, fontSize: 12.5 },
+  toolbar: { background: "white", borderRadius: 10, padding: 10, display: "flex", gap: 8, border: "1px solid #e3eaf5", marginBottom: 14 },
+  searchInput: { flex: 1, border: "1px solid #d9e1ee", background: "white", borderRadius: 8, padding: "9px 12px", fontSize: 13.5, outline: "none", fontWeight: 400, boxSizing: "border-box", color: "#0f1e3d" },
+  select: { border: "1px solid #d9e1ee", background: "white", borderRadius: 8, padding: "9px 12px", fontWeight: 500, fontSize: 13, color: "#0f1e3d" },
+  input: { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e1ee", marginBottom: 10, fontSize: 13.5, outline: "none", background: "white", color: "#0f1e3d", fontWeight: 400 },
+  smallInput: { width: 64, padding: "8px 10px", borderRadius: 8, border: "1px solid #d9e1ee", fontWeight: 500, fontSize: 13, textAlign: "center" },
+
+  // ===== Botões =====
+  primaryButton: { width: "100%", padding: "11px 14px", border: 0, borderRadius: 8, background: "#1e40af", color: "white", fontWeight: 600, fontSize: 14, cursor: "pointer", letterSpacing: 0.2 },
+  primarySmall: { border: 0, borderRadius: 8, background: "#1e40af", color: "white", padding: "9px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
+  secondaryButton: { border: "1px solid #d9e1ee", borderRadius: 8, background: "white", color: "#1e40af", padding: "8px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
+  darkButton: { border: 0, borderRadius: 8, background: "#0f1e3d", color: "white", padding: "9px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
+  inlineActions: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+
+  // ===== Cards de código =====
+  cardList: { display: "grid", gap: 10 },
+  codeCard: { background: "white", borderRadius: 10, padding: "16px 18px", border: "1px solid #e3eaf5" },
+  codeHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, borderBottom: "1px solid #eef2f8", paddingBottom: 12, marginBottom: 12 },
+  codeLabel: { color: "#6b7a93", fontWeight: 500, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.6 },
+  code: { margin: "2px 0 0", fontSize: 17, letterSpacing: 0.8, fontWeight: 600, color: "#0f1e3d", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
+
+  badge: { padding: "4px 9px", borderRadius: 6, fontWeight: 600, fontSize: 11, whiteSpace: "nowrap", display: "inline-block", letterSpacing: 0.2 },
+
+  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(140px, 1fr))", gap: 8 },
+  infoItem: { background: "#f6f9ff", borderRadius: 8, padding: "9px 11px", border: "1px solid #eaf0fa", display: "flex", flexDirection: "column", gap: 2 },
+
+  actions: { display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 },
+  actionButton: { border: 0, borderRadius: 7, background: "#1e40af", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
+  dangerButton: { border: 0, borderRadius: 7, background: "#b91c1c", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
+  successButton: { border: 0, borderRadius: 7, background: "#15803d", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
+  neutralButton: { border: "1px solid #d9e1ee", borderRadius: 7, background: "white", color: "#0f1e3d", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
+
+  // ===== Tabela =====
+  tableCard: { background: "white", borderRadius: 10, border: "1px solid #e3eaf5", overflow: "hidden" },
+  row: { display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr", gap: 12, alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #eef2f8", fontSize: 13 },
+  rowActions: { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" },
+
+  empty: { textAlign: "center", background: "white", borderRadius: 10, padding: 32, color: "#6b7a93", border: "1px dashed #d9e1ee", fontSize: 13 },
+
+  // ===== Modal =====
+  modalBg: { position: "fixed", inset: 0, background: "rgba(11,24,48,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 },
+  modal: { width: "100%", maxWidth: 820, background: "white", borderRadius: 12, padding: 24, boxShadow: "0 20px 60px rgba(11,24,48,.25)" },
+  modalHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid #eef2f8" },
+  modalTitle: { margin: "2px 0 0", fontSize: 18, fontWeight: 600, color: "#0f1e3d" },
+  closeButton: { border: "1px solid #d9e1ee", borderRadius: 7, background: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer", color: "#0f1e3d" },
+  note: { background: "#eff4ff", border: "1px solid #d4e0f7", padding: "10px 12px", borderRadius: 8, color: "#1e3a8a", fontWeight: 400, fontSize: 13, marginTop: 12 },
 };
