@@ -12,10 +12,7 @@ const STATUS = {
 };
 
 function gerarCodigo() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bloco = (qtd) =>
-    Array.from({ length: qtd }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  return `AF-${bloco(4)}-${bloco(4)}`;
+  return String(Math.floor(10000 + Math.random() * 90000)); // 5 dígitos, sem hífen
 }
 
 function formatarData(data) {
@@ -376,10 +373,10 @@ function Codigos({ gerando, gerarNovoCodigo, gerarLote, lote, setLote, lista, bu
       <section style={styles.panelCard}>
         <div>
           <h2 style={styles.sectionTitle}>Gerar códigos</h2>
-          <p style={styles.sectionText}>Gere códigos livres para entregar ao cliente após o pagamento.</p>
+          <p style={styles.sectionText}>Gere códigos simples de 5 dígitos. O cliente se cadastra pelo app.</p>
         </div>
         <div style={styles.inlineActions}>
-          <button style={styles.primarySmall} onClick={() => gerarNovoCodigo(true)} disabled={gerando}>{gerando ? "Gerando..." : "Gerar 1 código"}</button>
+          <button style={styles.primarySmall} onClick={() => gerarNovoCodigo(true)} disabled={gerando}>{gerando ? "Gerando..." : "Gerar código"}</button>
           <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} style={styles.smallInput} />
           <button style={styles.darkButton} onClick={gerarLote} disabled={gerando}>Gerar lote</button>
         </div>
@@ -444,83 +441,72 @@ function badgeStyle(status) {
 }
 
 const styles = {
-  // ===== Login =====
-  loginPage: { minHeight: "100vh", background: "linear-gradient(180deg,#f6f9ff 0%,#eef3fb 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Inter, system-ui, -apple-system, Arial, sans-serif", color: "#0f1e3d" },
-  loginCard: { width: "100%", maxWidth: 380, background: "white", borderRadius: 16, padding: 32, boxShadow: "0 8px 28px rgba(15,30,80,.08)", border: "1px solid #e3eaf5" },
-  logo: { width: 44, height: 44, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "#1e40af", color: "white", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, marginBottom: 20 },
-  loginTitle: { margin: 0, color: "#0f1e3d", fontSize: 20, fontWeight: 600, letterSpacing: -0.2 },
-  loginText: { color: "#5a6b85", fontSize: 13.5, fontWeight: 400, margin: "6px 0 22px", lineHeight: 1.5 },
-  hint: { display: "block", marginTop: 14, color: "#94a3b8", fontWeight: 400, fontSize: 12 },
+  loginPage: { minHeight: "100vh", background: "#f5f7fb", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", color: "#0f172a" },
+  loginCard: { width: "100%", maxWidth: 360, background: "#ffffff", borderRadius: 18, padding: 28, boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)", border: "1px solid #e5eaf3" },
+  logo: { width: 42, height: 42, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "#1f4fd6", color: "#fff", fontWeight: 700, fontSize: 14, letterSpacing: 0.4, marginBottom: 18 },
+  loginTitle: { margin: 0, color: "#0f172a", fontSize: 22, fontWeight: 700, letterSpacing: -0.3 },
+  loginText: { color: "#64748b", fontSize: 14, margin: "6px 0 22px", lineHeight: 1.5 },
+  hint: { display: "none" },
 
-  // ===== Layout =====
-  page: { minHeight: "100vh", background: "#f4f7fb", color: "#0f1e3d", display: "flex", fontFamily: "Inter, system-ui, -apple-system, Arial, sans-serif", fontSize: 14 },
-  sidebar: { width: 220, background: "#0b1830", color: "#cbd5e1", padding: "22px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box", borderRight: "1px solid #0a1428" },
-  brandBox: { display: "flex", gap: 10, alignItems: "center", marginBottom: 26, padding: "0 4px" },
-  logoSmall: { width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "#1e40af", color: "white", fontWeight: 700, fontSize: 12, letterSpacing: 0.5 },
-  mutedBlock: { display: "block", color: "#7e8da6", fontSize: 11.5, fontWeight: 400, marginTop: 1 },
-  menuActive: { width: "100%", padding: "9px 12px", borderRadius: 8, border: 0, background: "#1e40af", color: "white", fontWeight: 500, fontSize: 13.5, textAlign: "left", marginBottom: 4, cursor: "pointer" },
-  menuButton: { width: "100%", padding: "9px 12px", borderRadius: 8, border: 0, background: "transparent", color: "#cbd5e1", fontWeight: 400, fontSize: 13.5, textAlign: "left", cursor: "pointer", marginBottom: 4 },
-  logoutButton: { padding: "9px 12px", borderRadius: 8, border: "1px solid #1e2b46", background: "transparent", color: "#cbd5e1", fontWeight: 500, fontSize: 13, cursor: "pointer" },
+  page: { minHeight: "100vh", width: "100vw", background: "#f5f7fb", color: "#0f172a", display: "flex", fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", fontSize: 14, overflowX: "hidden" },
+  sidebar: { width: 236, background: "#0b1730", color: "#d6dfef", padding: "24px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box", flexShrink: 0 },
+  brandBox: { display: "flex", gap: 12, alignItems: "center", marginBottom: 30 },
+  logoSmall: { width: 40, height: 40, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "#1f4fd6", color: "#fff", fontWeight: 700, fontSize: 13, letterSpacing: 0.5, flexShrink: 0 },
+  mutedBlock: { display: "block", color: "#91a1bd", fontSize: 12, marginTop: 2 },
+  menuActive: { width: "100%", padding: "11px 13px", borderRadius: 10, border: 0, background: "#1f4fd6", color: "#fff", fontWeight: 600, fontSize: 14, textAlign: "left", marginBottom: 6, cursor: "pointer" },
+  menuButton: { width: "100%", padding: "11px 13px", borderRadius: 10, border: 0, background: "transparent", color: "#d6dfef", fontWeight: 450, fontSize: 14, textAlign: "left", cursor: "pointer", marginBottom: 6 },
+  logoutButton: { padding: "11px 13px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "#d6dfef", fontWeight: 500, fontSize: 13, cursor: "pointer" },
 
-  main: { flex: 1, padding: "28px 32px", maxWidth: 1240, margin: "0 auto", boxSizing: "border-box" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, marginBottom: 22, paddingBottom: 16, borderBottom: "1px solid #e3eaf5" },
-  eyebrow: { color: "#1e40af", fontWeight: 600, textTransform: "uppercase", fontSize: 10.5, letterSpacing: 1.2 },
-  title: { fontSize: 22, margin: "4px 0 2px", letterSpacing: -0.3, lineHeight: 1.2, fontWeight: 600, color: "#0f1e3d" },
-  subtitle: { color: "#6b7a93", margin: 0, fontWeight: 400, fontSize: 13 },
+  main: { flex: 1, padding: "28px 34px", boxSizing: "border-box", width: "calc(100vw - 236px)", maxWidth: "none", margin: 0 },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, marginBottom: 24, paddingBottom: 18, borderBottom: "1px solid #dde5f0" },
+  eyebrow: { color: "#1f4fd6", fontWeight: 650, textTransform: "uppercase", fontSize: 11, letterSpacing: 1.6 },
+  title: { fontSize: 28, margin: "5px 0 4px", letterSpacing: -0.5, lineHeight: 1.15, fontWeight: 650, color: "#0f172a" },
+  subtitle: { color: "#64748b", margin: 0, fontSize: 14, lineHeight: 1.45 },
 
-  // ===== Dashboard =====
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: 12 },
-  statCard: { background: "white", border: "1px solid #e3eaf5", borderRadius: 10, padding: "16px 18px", textAlign: "left", cursor: "pointer", boxShadow: "0 1px 2px rgba(15,30,80,.03)", transition: "border-color .15s, box-shadow .15s" },
-  statNumber: { display: "block", fontSize: 22, fontWeight: 600, color: "#1e40af", letterSpacing: -0.3 },
-  statLabel: { display: "block", color: "#6b7a93", fontWeight: 500, marginTop: 3, fontSize: 12.5 },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(170px, 1fr))", gap: 16 },
+  statCard: { background: "#ffffff", border: "1px solid #e1e7f0", borderRadius: 16, padding: "20px 22px", textAlign: "left", cursor: "pointer", boxShadow: "0 10px 28px rgba(15, 23, 42, 0.045)" },
+  statNumber: { display: "block", fontSize: 30, fontWeight: 650, color: "#1f4fd6", letterSpacing: -0.5 },
+  statLabel: { display: "block", color: "#667085", fontWeight: 450, marginTop: 4, fontSize: 14 },
 
-  // ===== Painel / Toolbar =====
-  panelCard: { background: "white", border: "1px solid #e3eaf5", borderRadius: 10, padding: "16px 18px", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", marginBottom: 14, flexWrap: "wrap" },
-  sectionTitle: { margin: 0, fontSize: 15, fontWeight: 600, color: "#0f1e3d" },
-  sectionText: { margin: "3px 0 0", color: "#6b7a93", fontWeight: 400, fontSize: 12.5 },
-  toolbar: { background: "white", borderRadius: 10, padding: 10, display: "flex", gap: 8, border: "1px solid #e3eaf5", marginBottom: 14 },
-  searchInput: { flex: 1, border: "1px solid #d9e1ee", background: "white", borderRadius: 8, padding: "9px 12px", fontSize: 13.5, outline: "none", fontWeight: 400, boxSizing: "border-box", color: "#0f1e3d" },
-  select: { border: "1px solid #d9e1ee", background: "white", borderRadius: 8, padding: "9px 12px", fontWeight: 500, fontSize: 13, color: "#0f1e3d" },
-  input: { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e1ee", marginBottom: 10, fontSize: 13.5, outline: "none", background: "white", color: "#0f1e3d", fontWeight: 400 },
-  smallInput: { width: 64, padding: "8px 10px", borderRadius: 8, border: "1px solid #d9e1ee", fontWeight: 500, fontSize: 13, textAlign: "center" },
+  panelCard: { background: "#ffffff", border: "1px solid #e1e7f0", borderRadius: 16, padding: "18px 20px", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", marginBottom: 16, flexWrap: "wrap", boxShadow: "0 10px 28px rgba(15, 23, 42, 0.045)" },
+  sectionTitle: { margin: 0, fontSize: 17, fontWeight: 650, color: "#0f172a" },
+  sectionText: { margin: "4px 0 0", color: "#64748b", fontSize: 13.5 },
+  toolbar: { background: "#ffffff", borderRadius: 16, padding: 12, display: "flex", gap: 10, border: "1px solid #e1e7f0", marginBottom: 16, boxShadow: "0 10px 28px rgba(15, 23, 42, 0.04)" },
+  searchInput: { flex: 1, border: "1px solid #d8e0ec", background: "#ffffff", borderRadius: 10, padding: "11px 13px", fontSize: 14, outline: "none", color: "#0f172a" },
+  select: { border: "1px solid #d8e0ec", background: "#ffffff", borderRadius: 10, padding: "11px 13px", fontWeight: 500, fontSize: 13.5, color: "#0f172a" },
+  input: { width: "100%", boxSizing: "border-box", padding: "12px 13px", borderRadius: 10, border: "1px solid #d8e0ec", marginBottom: 10, fontSize: 14, outline: "none", background: "#ffffff", color: "#0f172a" },
+  smallInput: { width: 74, padding: "10px 11px", borderRadius: 10, border: "1px solid #d8e0ec", fontSize: 14, textAlign: "center" },
 
-  // ===== Botões =====
-  primaryButton: { width: "100%", padding: "11px 14px", border: 0, borderRadius: 8, background: "#1e40af", color: "white", fontWeight: 600, fontSize: 14, cursor: "pointer", letterSpacing: 0.2 },
-  primarySmall: { border: 0, borderRadius: 8, background: "#1e40af", color: "white", padding: "9px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
-  secondaryButton: { border: "1px solid #d9e1ee", borderRadius: 8, background: "white", color: "#1e40af", padding: "8px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
-  darkButton: { border: 0, borderRadius: 8, background: "#0f1e3d", color: "white", padding: "9px 14px", fontWeight: 500, fontSize: 13, cursor: "pointer" },
-  inlineActions: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+  primaryButton: { width: "100%", padding: "12px 14px", border: 0, borderRadius: 10, background: "#1f4fd6", color: "#fff", fontWeight: 650, fontSize: 14, cursor: "pointer" },
+  primarySmall: { border: 0, borderRadius: 10, background: "#1f4fd6", color: "#fff", padding: "10px 14px", fontWeight: 600, fontSize: 13.5, cursor: "pointer" },
+  secondaryButton: { border: "1px solid #d8e0ec", borderRadius: 10, background: "#ffffff", color: "#1f4fd6", padding: "10px 14px", fontWeight: 600, fontSize: 13.5, cursor: "pointer" },
+  darkButton: { border: 0, borderRadius: 10, background: "#0f172a", color: "#ffffff", padding: "10px 14px", fontWeight: 600, fontSize: 13.5, cursor: "pointer" },
+  inlineActions: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
 
-  // ===== Cards de código =====
-  cardList: { display: "grid", gap: 10 },
-  codeCard: { background: "white", borderRadius: 10, padding: "16px 18px", border: "1px solid #e3eaf5" },
-  codeHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, borderBottom: "1px solid #eef2f8", paddingBottom: 12, marginBottom: 12 },
-  codeLabel: { color: "#6b7a93", fontWeight: 500, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.6 },
-  code: { margin: "2px 0 0", fontSize: 17, letterSpacing: 0.8, fontWeight: 600, color: "#0f1e3d", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
+  cardList: { display: "grid", gap: 14 },
+  codeCard: { background: "#ffffff", borderRadius: 18, padding: "20px", border: "1px solid #e1e7f0", boxShadow: "0 10px 28px rgba(15, 23, 42, 0.04)" },
+  codeHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, borderBottom: "1px solid #edf1f7", paddingBottom: 14, marginBottom: 14 },
+  codeLabel: { color: "#64748b", fontWeight: 550, fontSize: 11.5, textTransform: "uppercase", letterSpacing: 0.8 },
+  code: { margin: "3px 0 0", fontSize: 28, letterSpacing: 1.5, fontWeight: 650, color: "#0f172a", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
+  badge: { padding: "5px 10px", borderRadius: 999, fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", display: "inline-block" },
+  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: 10 },
+  infoItem: { background: "#f7f9fd", borderRadius: 12, padding: "12px 13px", border: "1px solid #edf1f7", display: "flex", flexDirection: "column", gap: 4 },
 
-  badge: { padding: "4px 9px", borderRadius: 6, fontWeight: 600, fontSize: 11, whiteSpace: "nowrap", display: "inline-block", letterSpacing: 0.2 },
+  actions: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 },
+  actionButton: { border: 0, borderRadius: 9, background: "#1f4fd6", color: "#fff", padding: "9px 13px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
+  dangerButton: { border: 0, borderRadius: 9, background: "#b42318", color: "#fff", padding: "9px 13px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
+  successButton: { border: 0, borderRadius: 9, background: "#16803c", color: "#fff", padding: "9px 13px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
+  neutralButton: { border: "1px solid #d8e0ec", borderRadius: 9, background: "#ffffff", color: "#0f172a", padding: "9px 13px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
 
-  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(140px, 1fr))", gap: 8 },
-  infoItem: { background: "#f6f9ff", borderRadius: 8, padding: "9px 11px", border: "1px solid #eaf0fa", display: "flex", flexDirection: "column", gap: 2 },
+  tableCard: { background: "#ffffff", borderRadius: 16, border: "1px solid #e1e7f0", overflow: "hidden", boxShadow: "0 10px 28px rgba(15, 23, 42, 0.04)" },
+  row: { display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr", gap: 14, alignItems: "center", padding: "15px 18px", borderBottom: "1px solid #edf1f7", fontSize: 13.5 },
+  rowActions: { display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "flex-end" },
+  empty: { textAlign: "center", background: "#ffffff", borderRadius: 16, padding: 36, color: "#64748b", border: "1px dashed #d8e0ec", fontSize: 14 },
 
-  actions: { display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 },
-  actionButton: { border: 0, borderRadius: 7, background: "#1e40af", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
-  dangerButton: { border: 0, borderRadius: 7, background: "#b91c1c", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
-  successButton: { border: 0, borderRadius: 7, background: "#15803d", color: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
-  neutralButton: { border: "1px solid #d9e1ee", borderRadius: 7, background: "white", color: "#0f1e3d", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer" },
-
-  // ===== Tabela =====
-  tableCard: { background: "white", borderRadius: 10, border: "1px solid #e3eaf5", overflow: "hidden" },
-  row: { display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr", gap: 12, alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #eef2f8", fontSize: 13 },
-  rowActions: { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" },
-
-  empty: { textAlign: "center", background: "white", borderRadius: 10, padding: 32, color: "#6b7a93", border: "1px dashed #d9e1ee", fontSize: 13 },
-
-  // ===== Modal =====
-  modalBg: { position: "fixed", inset: 0, background: "rgba(11,24,48,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 },
-  modal: { width: "100%", maxWidth: 820, background: "white", borderRadius: 12, padding: 24, boxShadow: "0 20px 60px rgba(11,24,48,.25)" },
-  modalHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid #eef2f8" },
-  modalTitle: { margin: "2px 0 0", fontSize: 18, fontWeight: 600, color: "#0f1e3d" },
-  closeButton: { border: "1px solid #d9e1ee", borderRadius: 7, background: "white", padding: "7px 12px", fontWeight: 500, fontSize: 12.5, cursor: "pointer", color: "#0f1e3d" },
-  note: { background: "#eff4ff", border: "1px solid #d4e0f7", padding: "10px 12px", borderRadius: 8, color: "#1e3a8a", fontWeight: 400, fontSize: 13, marginTop: 12 },
+  modalBg: { position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 },
+  modal: { width: "100%", maxWidth: 880, background: "#ffffff", borderRadius: 18, padding: 24, boxShadow: "0 25px 80px rgba(15,23,42,.22)" },
+  modalHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18, paddingBottom: 14, borderBottom: "1px solid #edf1f7" },
+  modalTitle: { margin: "2px 0 0", fontSize: 20, fontWeight: 650, color: "#0f172a" },
+  closeButton: { border: "1px solid #d8e0ec", borderRadius: 9, background: "#ffffff", padding: "9px 13px", fontWeight: 600, fontSize: 13, cursor: "pointer", color: "#0f172a" },
+  note: { background: "#edf3ff", border: "1px solid #d6e4ff", padding: "12px 13px", borderRadius: 12, color: "#1d4ed8", fontSize: 13.5, marginTop: 14 },
 };
