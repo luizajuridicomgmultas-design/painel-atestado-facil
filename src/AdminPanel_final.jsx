@@ -11,35 +11,11 @@ const STATUS = {
   VENCIDO: "Vencido",
 };
 
-const PAGAMENTO = {
-  PENDENTE: "Pendente",
-  PAGO: "Pago",
-};
-
-const TABS = [
-  { id: "dashboard", label: "Dashboard", icon: "📊" },
-  { id: "codigos", label: "Códigos", icon: "🔑" },
-  { id: "usuarios", label: "Usuários", icon: "👥" },
-  { id: "pagamentos", label: "Pagamentos", icon: "💰" },
-  { id: "documentos", label: "Documentos", icon: "📄" },
-  { id: "erros", label: "Erros", icon: "⚠️" },
-];
-
 function gerarCodigo() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bloco = (qtd) =>
     Array.from({ length: qtd }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   return `AF-${bloco(4)}-${bloco(4)}`;
-}
-
-function hojeISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function addDiasISO(dias = 90) {
-  const d = new Date();
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().split("T")[0];
 }
 
 function formatarData(data) {
@@ -60,76 +36,28 @@ function formatarDataHora(data) {
   }
 }
 
-function isVencido(u) {
-  if (!u?.validade) return false;
-  return new Date(`${u.validade}T23:59:59`) < new Date(new Date().toDateString());
+function hojeISO() {
+  return new Date().toISOString().split("T")[0];
 }
 
-function statusReal(u) {
-  if (u.status === STATUS.ATIVO && isVencido(u)) return STATUS.VENCIDO;
-  return u.status || STATUS.DISPONIVEL;
-}
-
-function badgeStyle(status) {
-  if (status === STATUS.ATIVO) return { background: "#dcfce7", color: "#166534" };
-  if (status === STATUS.BLOQUEADO) return { background: "#fee2e2", color: "#991b1b" };
-  if (status === STATUS.VENCIDO) return { background: "#fef3c7", color: "#92400e" };
-  return { background: "#dbeafe", color: "#1d4ed8" };
-}
-
-function termoResponsabilidadeHTML(usuario) {
-  const nome = usuario.nome || "Cliente";
-  const cpf = usuario.cpf || "não informado";
-  const codigo = usuario.codigo || "-";
-  return `
-    <html>
-      <head>
-        <title>Termo de Responsabilidade - ${nome}</title>
-        <meta charset="utf-8" />
-        <style>
-          body { font-family: Arial, sans-serif; padding: 42px; color: #111827; line-height: 1.55; }
-          h1 { text-align:center; font-size: 24px; margin-bottom: 28px; }
-          p { font-size: 14px; }
-          .box { border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0; }
-          .assinatura { margin-top: 70px; text-align:center; }
-          @media print { button { display:none; } }
-        </style>
-      </head>
-      <body>
-        <button onclick="window.print()">Salvar como PDF</button>
-        <h1>Termo de Uso e Responsabilidade</h1>
-        <div class="box">
-          <p><b>Cliente:</b> ${nome}</p>
-          <p><b>CPF:</b> ${cpf}</p>
-          <p><b>Código de acesso:</b> ${codigo}</p>
-          <p><b>Data:</b> ${new Date().toLocaleDateString("pt-BR")}</p>
-        </div>
-        <p>O usuário declara que todas as informações e documentos enviados pelo aplicativo são verdadeiros e de sua inteira responsabilidade.</p>
-        <p>O Atestado Fácil é uma ferramenta independente, sem vínculo oficial com Prefeitura, Secretaria, órgão público ou sistema governamental.</p>
-        <p>O sistema auxilia no preenchimento, organização e envio de documentos, mas não garante deferimento, aceitação, prazo de resposta ou resultado perante qualquer órgão.</p>
-        <p>O usuário reconhece que falhas externas, instabilidades de e-mail, mudanças no formulário oficial ou alteração de procedimentos do órgão podem impactar o funcionamento do serviço.</p>
-        <p>O acesso é individual, vinculado ao código informado, com prazo determinado. Após o vencimento, o acesso poderá ser bloqueado até renovação ou confirmação de novo pagamento.</p>
-        <div class="assinatura">
-          <p>__________________________________________</p>
-          <p>${nome}</p>
-        </div>
-      </body>
-    </html>`;
+function validade90Dias() {
+  const d = new Date();
+  d.setDate(d.getDate() + 90);
+  return d.toISOString().split("T")[0];
 }
 
 export default function AdminPanel() {
   const [logado, setLogado] = useState(() => localStorage.getItem("painel_atestado_logado") === "sim");
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
-  const [tab, setTab] = useState("dashboard");
-  const [usuarios, setUsuarios] = useState([]);
+  const [aba, setAba] = useState("dashboard");
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("Todos");
+  const [usuarios, setUsuarios] = useState([]);
+  const [selecionado, setSelecionado] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
-  const [selecionado, setSelecionado] = useState(null);
-  const [editando, setEditando] = useState(null);
-  const [quantidade, setQuantidade] = useState(1);
+  const [lote, setLote] = useState(5);
 
   useEffect(() => {
     if (logado) carregarUsuarios();
@@ -137,6 +65,13 @@ export default function AdminPanel() {
 
   async function carregarUsuarios() {
     setCarregando(true);
+
+    await supabase
+      .from("usuarios")
+      .update({ status: STATUS.VENCIDO, vencido_em: new Date().toISOString() })
+      .lt("validade", hojeISO())
+      .eq("status", STATUS.ATIVO);
+
     const { data, error } = await supabase
       .from("usuarios")
       .select("*")
@@ -144,23 +79,12 @@ export default function AdminPanel() {
 
     if (error) {
       console.error(error);
-      alert(`Erro ao carregar painel: ${error.message}`);
+      alert("Erro ao carregar dados do painel. Confira as colunas do Supabase e as variáveis da Vercel.");
     } else {
-      const lista = data || [];
-      setUsuarios(lista);
-      await marcarVencidos(lista);
+      setUsuarios(data || []);
     }
+
     setCarregando(false);
-  }
-
-  async function marcarVencidos(lista) {
-    const vencidos = lista.filter((u) => u.status === STATUS.ATIVO && isVencido(u));
-    if (!vencidos.length) return;
-
-    await supabase
-      .from("usuarios")
-      .update({ status: STATUS.VENCIDO, vencido_em: new Date().toISOString(), pagamento_status: PAGAMENTO.PENDENTE })
-      .in("id", vencidos.map((u) => u.id));
   }
 
   function entrar(e) {
@@ -176,84 +100,90 @@ export default function AdminPanel() {
   function sair() {
     localStorage.removeItem("painel_atestado_logado");
     setLogado(false);
+    setUsuario("");
+    setSenha("");
   }
 
-  async function gerarCodigos(qtd = 1) {
+  async function gerarNovoCodigo(copiar = true) {
     setGerando(true);
-    const novos = [];
-    for (let i = 0; i < Number(qtd || 1); i += 1) {
-      novos.push({ codigo: gerarCodigo(), status: STATUS.DISPONIVEL, sistema: "", pagamento_status: PAGAMENTO.PENDENTE });
+    let codigo = gerarCodigo();
+
+    for (let i = 0; i < 7; i += 1) {
+      const { error } = await supabase.from("usuarios").insert([
+        { codigo, status: STATUS.DISPONIVEL, sistema: "", pagamento_status: "Pendente" },
+      ]);
+
+      if (!error) {
+        setGerando(false);
+        await carregarUsuarios();
+        if (copiar) {
+          await navigator.clipboard?.writeText(codigo).catch(() => {});
+          alert(`Código gerado e copiado: ${codigo}`);
+        }
+        return codigo;
+      }
+
+      if (String(error.message || "").toLowerCase().includes("duplicate")) {
+        codigo = gerarCodigo();
+      } else {
+        console.error(error);
+        alert("Erro ao gerar código.");
+        setGerando(false);
+        return null;
+      }
     }
 
-    const { error } = await supabase.from("usuarios").insert(novos);
+    setGerando(false);
+    alert("Não foi possível gerar um código único. Tente novamente.");
+    return null;
+  }
+
+  async function gerarLote() {
+    const qtd = Math.max(1, Math.min(Number(lote) || 1, 100));
+    setGerando(true);
+    const registros = Array.from({ length: qtd }, () => ({
+      codigo: gerarCodigo(),
+      status: STATUS.DISPONIVEL,
+      sistema: "",
+      pagamento_status: "Pendente",
+    }));
+
+    const { error } = await supabase.from("usuarios").insert(registros);
     setGerando(false);
 
     if (error) {
       console.error(error);
-      alert(`Erro ao gerar código: ${error.message}`);
+      alert("Erro ao gerar lote. Tente novamente.");
       return;
     }
 
     await carregarUsuarios();
-    if (novos.length === 1) {
-      await navigator.clipboard?.writeText(novos[0].codigo).catch(() => {});
-      alert(`Código gerado e copiado: ${novos[0].codigo}`);
-    } else {
-      alert(`${novos.length} códigos gerados com sucesso.`);
+    alert(`${qtd} códigos gerados.`);
+  }
+
+  async function alterarStatus(item, novoStatus) {
+    const updates = { status: novoStatus };
+
+    if (novoStatus === STATUS.BLOQUEADO) {
+      updates.bloqueado_motivo = prompt("Motivo do bloqueio (opcional):") || "Bloqueio manual";
     }
-  }
 
-  async function atualizarUsuario(id, updates, msg = "Atualizado com sucesso.") {
-    const { error } = await supabase.from("usuarios").update(updates).eq("id", id);
-    if (error) {
-      console.error(error);
-      alert(`Erro: ${error.message}`);
-      return false;
+    if (novoStatus === STATUS.ATIVO) {
+      updates.validade = item.validade && item.validade >= hojeISO() ? item.validade : validade90Dias();
+      updates.bloqueado_motivo = null;
+      updates.pagamento_status = "Pago";
+      updates.pago_em = new Date().toISOString();
+      updates.renovado_em = new Date().toISOString();
     }
-    await carregarUsuarios();
-    alert(msg);
-    return true;
-  }
 
-  async function bloquear(u) {
-    const motivo = prompt("Motivo do bloqueio:") || "Bloqueio manual";
-    await atualizarUsuario(u.id, { status: STATUS.BLOQUEADO, bloqueado_motivo: motivo }, "Usuário bloqueado.");
-  }
-
-  async function liberar(u) {
-    await atualizarUsuario(u.id, { status: STATUS.ATIVO, bloqueado_motivo: null }, "Usuário liberado.");
-  }
-
-  async function renovar(u) {
-    const confirmar = confirm("Confirmar pagamento e renovar acesso por mais 90 dias?");
-    if (!confirmar) return;
-    await atualizarUsuario(
-      u.id,
-      {
-        status: STATUS.ATIVO,
-        validade: addDiasISO(90),
-        pagamento_status: PAGAMENTO.PAGO,
-        pago_em: new Date().toISOString(),
-        renovado_em: new Date().toISOString(),
-        bloqueado_motivo: null,
-      },
-      "Pagamento confirmado e acesso renovado por 90 dias."
-    );
-  }
-
-  async function liberarDeNovo(u) {
-    const confirmar = confirm("Isso apaga os dados do cliente e deixa o código livre de novo. Confirmar?");
-    if (!confirmar) return;
-    await atualizarUsuario(
-      u.id,
-      {
-        status: STATUS.DISPONIVEL,
+    if (novoStatus === STATUS.DISPONIVEL) {
+      const ok = confirm("Liberar este código novamente? Isso apaga os dados do cliente vinculados a ele.");
+      if (!ok) return;
+      Object.assign(updates, {
         nome: null,
         cpf: null,
         telefone: null,
         email: null,
-        sistema: null,
-        validade: null,
         cargo: null,
         orgao: null,
         mat1: null,
@@ -261,53 +191,58 @@ export default function AdminPanel() {
         unid1: null,
         unid2: null,
         sit: null,
+        validade: null,
         usado_em: null,
         bloqueado_motivo: null,
-        pagamento_status: PAGAMENTO.PENDENTE,
+        envios: 0,
+        alteracoes: 0,
+        pagamento_status: "Pendente",
         pago_em: null,
         renovado_em: null,
         vencido_em: null,
-        ultimo_erro: null,
-        ultimo_erro_em: null,
-        envios: 0,
-        alteracoes: 0,
-      },
-      "Código liberado novamente."
-    );
+      });
+    }
+
+    const { error } = await supabase.from("usuarios").update(updates).eq("id", item.id);
+    if (error) {
+      console.error(error);
+      alert("Erro ao alterar status.");
+      return;
+    }
+    await carregarUsuarios();
+    setSelecionado(null);
   }
 
-  async function salvarEdicao() {
-    if (!editando?.id) return;
-    const ok = await atualizarUsuario(editando.id, {
-      nome: editando.nome || null,
-      cpf: editando.cpf || null,
-      telefone: editando.telefone || null,
-      email: editando.email || null,
-      sistema: editando.sistema || null,
-      cargo: editando.cargo || null,
-      orgao: editando.orgao || null,
-      mat1: editando.mat1 || null,
-      mat2: editando.mat2 || null,
-      unid1: editando.unid1 || null,
-      unid2: editando.unid2 || null,
-      sit: editando.sit || null,
-      validade: editando.validade || null,
-      observacoes: editando.observacoes || null,
-      pagamento_status: editando.pagamento_status || PAGAMENTO.PENDENTE,
-    }, "Dados salvos.");
-    if (ok) setEditando(null);
+  async function renovar(item) {
+    const novaValidade = validade90Dias();
+    const { error } = await supabase
+      .from("usuarios")
+      .update({
+        status: STATUS.ATIVO,
+        validade: novaValidade,
+        pagamento_status: "Pago",
+        pago_em: new Date().toISOString(),
+        renovado_em: new Date().toISOString(),
+        bloqueado_motivo: null,
+      })
+      .eq("id", item.id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao renovar acesso.");
+      return;
+    }
+
+    await carregarUsuarios();
+    alert(`Acesso renovado até ${formatarData(novaValidade)}.`);
   }
 
-  function abrirTermo(u) {
-    const html = termoResponsabilidadeHTML(u);
-    const w = window.open("", "_blank");
-    w.document.write(html);
-    w.document.close();
-  }
-
-  async function registrarErroTeste(u) {
-    const erro = prompt("Descreva o erro:") || "Erro manual registrado no painel";
-    await atualizarUsuario(u.id, { ultimo_erro: erro, ultimo_erro_em: new Date().toISOString() }, "Erro registrado.");
+  async function salvarObservacao(item) {
+    const obs = prompt("Observação do cliente:", item.observacoes || "");
+    if (obs === null) return;
+    const { error } = await supabase.from("usuarios").update({ observacoes: obs }).eq("id", item.id);
+    if (error) alert("Erro ao salvar observação.");
+    await carregarUsuarios();
   }
 
   async function copiarCodigo(codigo) {
@@ -315,54 +250,47 @@ export default function AdminPanel() {
     alert(`Código copiado: ${codigo}`);
   }
 
-  const filtrados = useMemo(() => {
+  const listaFiltrada = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return usuarios.filter((u) => {
-      const st = statusReal(u);
-      const bateFiltro = filtro === "Todos" || st === filtro;
+      const bateFiltro = filtro === "Todos" || u.status === filtro;
       const texto = `${u.codigo || ""} ${u.nome || ""} ${u.cpf || ""} ${u.email || ""} ${u.telefone || ""}`.toLowerCase();
       return bateFiltro && (!termo || texto.includes(termo));
     });
   }, [usuarios, busca, filtro]);
 
-  const dados = useMemo(() => {
-    const base = {
+  const stats = useMemo(() => {
+    const s = {
       total: usuarios.length,
-      disponiveis: 0,
-      ativos: 0,
-      bloqueados: 0,
-      vencidos: 0,
-      pagamentosPendentes: 0,
+      disponivel: 0,
+      ativo: 0,
+      bloqueado: 0,
+      vencido: 0,
+      pendentePagamento: 0,
       erros: 0,
       envios: 0,
       alteracoes: 0,
     };
     usuarios.forEach((u) => {
-      const st = statusReal(u);
-      if (st === STATUS.DISPONIVEL) base.disponiveis += 1;
-      if (st === STATUS.ATIVO) base.ativos += 1;
-      if (st === STATUS.BLOQUEADO) base.bloqueados += 1;
-      if (st === STATUS.VENCIDO) base.vencidos += 1;
-      if ((u.pagamento_status || PAGAMENTO.PENDENTE) === PAGAMENTO.PENDENTE) base.pagamentosPendentes += 1;
-      if (u.ultimo_erro) base.erros += 1;
-      base.envios += Number(u.envios || 0);
-      base.alteracoes += Number(u.alteracoes || 0);
+      if (u.status === STATUS.DISPONIVEL) s.disponivel += 1;
+      if (u.status === STATUS.ATIVO) s.ativo += 1;
+      if (u.status === STATUS.BLOQUEADO) s.bloqueado += 1;
+      if (u.status === STATUS.VENCIDO) s.vencido += 1;
+      if ((u.pagamento_status || "Pendente") !== "Pago") s.pendentePagamento += 1;
+      if (u.ultimo_erro) s.erros += 1;
+      s.envios += Number(u.envios || 0);
+      s.alteracoes += Number(u.alteracoes || 0);
     });
-    return base;
+    return s;
   }, [usuarios]);
-
-  const ativos = usuarios.filter((u) => statusReal(u) === STATUS.ATIVO);
-  const pagamentos = usuarios.filter((u) => statusReal(u) === STATUS.VENCIDO || (u.pagamento_status || PAGAMENTO.PENDENTE) === PAGAMENTO.PENDENTE);
-  const docs = usuarios.filter((u) => u.nome || u.termos_pdf || u.comprovante_pdf);
-  const erros = usuarios.filter((u) => u.ultimo_erro);
 
   if (!logado) {
     return (
       <div style={styles.loginPage}>
         <form style={styles.loginCard} onSubmit={entrar}>
           <div style={styles.logo}>AF</div>
-          <h1 style={styles.loginTitle}>Painel PRO</h1>
-          <p style={styles.loginText}>Controle completo do Atestado Fácil.</p>
+          <h1 style={styles.loginTitle}>Painel Atestado Fácil</h1>
+          <p style={styles.loginText}>Gerencie acessos, pagamentos, vencimentos e erros.</p>
           <input placeholder="Usuário" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={styles.input} />
           <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} style={styles.input} />
           <button type="submit" style={styles.primaryButton}>Entrar</button>
@@ -380,229 +308,199 @@ export default function AdminPanel() {
             <div style={styles.logoSmall}>AF</div>
             <div>
               <strong>Atestado Fácil</strong>
-              <span style={styles.mutedBlock}>Painel PRO</span>
+              <span style={styles.mutedBlock}>Painel ADM</span>
             </div>
           </div>
-          {TABS.map((item) => (
-            <button key={item.id} onClick={() => setTab(item.id)} style={tab === item.id ? styles.menuActive : styles.menuButton}>
-              <span>{item.icon}</span> {item.label}
+
+          {[
+            ["dashboard", "Dashboard"],
+            ["codigos", "Códigos"],
+            ["usuarios", "Usuários"],
+            ["pagamentos", "Pagamentos"],
+            ["documentos", "Documentos"],
+            ["erros", "Erros"],
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setAba(id)} style={aba === id ? styles.menuActive : styles.menuButton}>
+              {label}
             </button>
           ))}
         </div>
-        <div style={{ display: "grid", gap: 10 }}>
-          <button style={styles.menuButton} onClick={carregarUsuarios}>{carregando ? "Atualizando..." : "🔄 Atualizar"}</button>
-          <button style={styles.logoutButton} onClick={sair}>Sair</button>
-        </div>
+        <button style={styles.logoutButton} onClick={sair}>Sair</button>
       </aside>
 
       <main style={styles.main}>
         <header style={styles.header}>
           <div>
-            <span style={styles.eyebrow}>Central de controle</span>
-            <h1 style={styles.title}>{TABS.find((x) => x.id === tab)?.label}</h1>
-            <p style={styles.subtitle}>Códigos, usuários, pagamentos, documentos, vencimentos e erros em um só lugar.</p>
+            <span style={styles.eyebrow}>Administração</span>
+            <h1 style={styles.title}>{tituloAba(aba)}</h1>
+            <p style={styles.subtitle}>Sistema de controle do Atestado Fácil.</p>
           </div>
-          <button onClick={() => gerarCodigos(1)} disabled={gerando} style={styles.generateButton}>{gerando ? "Gerando..." : "+ Gerar código"}</button>
+          <button style={styles.secondaryButton} onClick={carregarUsuarios}>{carregando ? "Atualizando..." : "Atualizar"}</button>
         </header>
 
-        {tab === "dashboard" && <Dashboard dados={dados} ativos={ativos} pagamentos={pagamentos} setTab={setTab} />}
-        {tab === "codigos" && <Codigos usuarios={filtrados} busca={busca} setBusca={setBusca} filtro={filtro} setFiltro={setFiltro} quantidade={quantidade} setQuantidade={setQuantidade} gerarCodigos={gerarCodigos} gerando={gerando} copiarCodigo={copiarCodigo} bloquear={bloquear} liberar={liberar} liberarDeNovo={liberarDeNovo} setSelecionado={setSelecionado} />}
-        {tab === "usuarios" && <Usuarios usuarios={filtrados} busca={busca} setBusca={setBusca} setEditando={setEditando} bloquear={bloquear} liberar={liberar} renovar={renovar} abrirTermo={abrirTermo} />}
-        {tab === "pagamentos" && <Pagamentos usuarios={pagamentos} renovar={renovar} bloquear={bloquear} />}
-        {tab === "documentos" && <Documentos usuarios={docs} abrirTermo={abrirTermo} setEditando={setEditando} />}
-        {tab === "erros" && <Erros usuarios={erros} registrarErroTeste={registrarErroTeste} />}
+        {aba === "dashboard" && <Dashboard stats={stats} setAba={setAba} />}
+        {aba === "codigos" && <Codigos gerando={gerando} gerarNovoCodigo={gerarNovoCodigo} gerarLote={gerarLote} lote={lote} setLote={setLote} lista={listaFiltrada} busca={busca} setBusca={setBusca} filtro={filtro} setFiltro={setFiltro} copiarCodigo={copiarCodigo} alterarStatus={alterarStatus} />}
+        {aba === "usuarios" && <Usuarios lista={listaFiltrada.filter((u) => u.nome)} busca={busca} setBusca={setBusca} setSelecionado={setSelecionado} renovar={renovar} alterarStatus={alterarStatus} salvarObservacao={salvarObservacao} />}
+        {aba === "pagamentos" && <Pagamentos lista={usuarios.filter((u) => u.nome)} renovar={renovar} alterarStatus={alterarStatus} />}
+        {aba === "documentos" && <Documentos lista={usuarios.filter((u) => u.nome)} />}
+        {aba === "erros" && <Erros lista={usuarios.filter((u) => u.ultimo_erro)} />}
+
+        {selecionado && <ModalCliente item={selecionado} fechar={() => setSelecionado(null)} renovar={renovar} alterarStatus={alterarStatus} />}
       </main>
-
-      {selecionado && <Detalhes usuario={selecionado} fechar={() => setSelecionado(null)} copiarCodigo={copiarCodigo} renovar={renovar} bloquear={bloquear} liberar={liberar} abrirTermo={abrirTermo} registrarErroTeste={registrarErroTeste} />}
-      {editando && <Editor usuario={editando} setUsuario={setEditando} salvar={salvarEdicao} fechar={() => setEditando(null)} />}
     </div>
   );
 }
 
-function Dashboard({ dados, ativos, pagamentos, setTab }) {
+function tituloAba(aba) {
+  const nomes = { dashboard: "Dashboard", codigos: "Códigos de acesso", usuarios: "Gerenciar usuários", pagamentos: "Pagamentos", documentos: "Documentos", erros: "Erros de envio" };
+  return nomes[aba] || "Painel";
+}
+
+function Dashboard({ stats, setAba }) {
+  const cards = [
+    ["Clientes ativos", stats.ativo, "usuarios"],
+    ["Códigos livres", stats.disponivel, "codigos"],
+    ["Vencidos", stats.vencido, "pagamentos"],
+    ["Bloqueados", stats.bloqueado, "usuarios"],
+    ["Pendentes", stats.pendentePagamento, "pagamentos"],
+    ["Erros", stats.erros, "erros"],
+    ["Envios", stats.envios, "usuarios"],
+    ["Alterações", stats.alteracoes, "usuarios"],
+  ];
+  return <section style={styles.statsGrid}>{cards.map(([label, value, aba]) => <button key={label} onClick={() => setAba(aba)} style={styles.statCard}><span style={styles.statNumber}>{value}</span><span style={styles.statLabel}>{label}</span></button>)}</section>;
+}
+
+function Codigos({ gerando, gerarNovoCodigo, gerarLote, lote, setLote, lista, busca, setBusca, filtro, setFiltro, copiarCodigo, alterarStatus }) {
   return (
-    <div>
-      <div style={styles.statsGrid}>
-        <Stat label="Total" value={dados.total} />
-        <Stat label="Ativos" value={dados.ativos} />
-        <Stat label="Disponíveis" value={dados.disponiveis} />
-        <Stat label="Vencidos" value={dados.vencidos} danger />
-        <Stat label="Bloqueados" value={dados.bloqueados} danger />
-        <Stat label="Pag. pendentes" value={dados.pagamentosPendentes} warn />
-        <Stat label="Envios" value={dados.envios} />
-        <Stat label="Erros" value={dados.erros} danger />
-      </div>
-      <div style={styles.twoCols}>
-        <section style={styles.panel}>
-          <h2>Clientes ativos</h2>
-          {ativos.slice(0, 6).map((u) => <MiniRow key={u.id} u={u} />)}
-          {!ativos.length && <Empty text="Nenhum cliente ativo." />}
-          <button style={styles.secondaryButton} onClick={() => setTab("usuarios")}>Ver usuários</button>
-        </section>
-        <section style={styles.panel}>
-          <h2>Pendências de pagamento</h2>
-          {pagamentos.slice(0, 6).map((u) => <MiniRow key={u.id} u={u} extra={u.pagamento_status || PAGAMENTO.PENDENTE} />)}
-          {!pagamentos.length && <Empty text="Nenhuma pendência." />}
-          <button style={styles.secondaryButton} onClick={() => setTab("pagamentos")}>Ver pagamentos</button>
-        </section>
-      </div>
-    </div>
+    <>
+      <section style={styles.panelCard}>
+        <div>
+          <h2 style={styles.sectionTitle}>Gerar códigos</h2>
+          <p style={styles.sectionText}>Gere códigos livres para entregar ao cliente após o pagamento.</p>
+        </div>
+        <div style={styles.inlineActions}>
+          <button style={styles.primarySmall} onClick={() => gerarNovoCodigo(true)} disabled={gerando}>{gerando ? "Gerando..." : "Gerar 1 código"}</button>
+          <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} style={styles.smallInput} />
+          <button style={styles.darkButton} onClick={gerarLote} disabled={gerando}>Gerar lote</button>
+        </div>
+      </section>
+      <Toolbar busca={busca} setBusca={setBusca} filtro={filtro} setFiltro={setFiltro} />
+      <section style={styles.cardList}>
+        {lista.length === 0 ? <Empty text="Nenhum código encontrado." /> : lista.map((item) => <CardCodigo key={item.id} item={item} copiarCodigo={copiarCodigo} alterarStatus={alterarStatus} />)}
+      </section>
+    </>
   );
 }
 
-function Codigos({ usuarios, busca, setBusca, filtro, setFiltro, quantidade, setQuantidade, gerarCodigos, gerando, copiarCodigo, bloquear, liberar, liberarDeNovo, setSelecionado }) {
-  return (
-    <div>
-      <section style={styles.toolbar}>
-        <input placeholder="Buscar por código, nome, CPF, telefone ou e-mail..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} />
-        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={styles.select}>
-          <option>Todos</option><option>{STATUS.DISPONIVEL}</option><option>{STATUS.ATIVO}</option><option>{STATUS.BLOQUEADO}</option><option>{STATUS.VENCIDO}</option>
-        </select>
-      </section>
-      <section style={styles.panelInline}>
-        <strong>Gerar lote de códigos</strong>
-        <input type="number" min="1" max="100" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} style={styles.numberInput} />
-        <button style={styles.generateButtonSmall} disabled={gerando} onClick={() => gerarCodigos(Number(quantidade || 1))}>Gerar</button>
-      </section>
-      <CardList usuarios={usuarios} copiarCodigo={copiarCodigo} bloquear={bloquear} liberar={liberar} liberarDeNovo={liberarDeNovo} setSelecionado={setSelecionado} />
-    </div>
-  );
+function Toolbar({ busca, setBusca, filtro, setFiltro }) {
+  return <section style={styles.toolbar}><input placeholder="Buscar por código, nome, CPF, telefone ou e-mail..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /><select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={styles.select}><option>Todos</option><option>Disponível</option><option>Ativo</option><option>Bloqueado</option><option>Vencido</option></select></section>;
 }
 
-function Usuarios({ usuarios, busca, setBusca, setEditando, bloquear, liberar, renovar, abrirTermo }) {
-  const vinculados = usuarios.filter((u) => u.nome || statusReal(u) !== STATUS.DISPONIVEL);
-  return (
-    <div>
-      <section style={styles.toolbar}>
-        <input placeholder="Buscar cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} />
-      </section>
-      <div style={styles.tableWrap}>
-        <table style={styles.table}>
-          <thead><tr><th>Cliente</th><th>Código</th><th>Status</th><th>Validade</th><th>Pagamento</th><th>Ações</th></tr></thead>
-          <tbody>
-            {vinculados.map((u) => <tr key={u.id}><td><b>{u.nome || "Sem nome"}</b><small>{u.cpf || "CPF não informado"}</small></td><td>{u.codigo}</td><td><Badge status={statusReal(u)} /></td><td>{formatarData(u.validade)}</td><td>{u.pagamento_status || PAGAMENTO.PENDENTE}</td><td><ActionGroup u={u} setEditando={setEditando} bloquear={bloquear} liberar={liberar} renovar={renovar} abrirTermo={abrirTermo} /></td></tr>)}
-          </tbody>
-        </table>
-        {!vinculados.length && <Empty text="Nenhum usuário vinculado ainda." />}
-      </div>
-    </div>
-  );
+function CardCodigo({ item, copiarCodigo, alterarStatus }) {
+  return <article style={styles.codeCard}><div style={styles.codeHeader}><div><span style={styles.codeLabel}>Código</span><h2 style={styles.code}>{item.codigo}</h2></div><span style={{ ...styles.badge, ...badgeStyle(item.status) }}>{item.status || STATUS.DISPONIVEL}</span></div><div style={styles.infoGrid}><Info label="Cliente" value={item.nome || "Ainda não vinculado"} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div><div style={styles.actions}><button style={styles.actionButton} onClick={() => copiarCodigo(item.codigo)}>Copiar</button>{item.status !== STATUS.BLOQUEADO ? <button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button> : <button style={styles.successButton} onClick={() => alterarStatus(item, STATUS.ATIVO)}>Ativar</button>}{item.status !== STATUS.DISPONIVEL && <button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar código</button>}</div></article>;
 }
 
-function Pagamentos({ usuarios, renovar, bloquear }) {
-  return <div style={styles.cardList}>{usuarios.map((u) => <article key={u.id} style={styles.codeCard}><CardHeader u={u} /><div style={styles.infoGrid}><Info label="Pagamento" value={u.pagamento_status || PAGAMENTO.PENDENTE} /><Info label="Pago em" value={formatarDataHora(u.pago_em)} /><Info label="Renovado em" value={formatarDataHora(u.renovado_em)} /><Info label="Validade" value={formatarData(u.validade)} /></div><div style={styles.actions}><button style={styles.successButton} onClick={() => renovar(u)}>Marcar pago e renovar 90 dias</button><button style={styles.dangerButton} onClick={() => bloquear(u)}>Bloquear</button></div></article>)}{!usuarios.length && <Empty text="Nenhum pagamento pendente." />}</div>;
+function Usuarios({ lista, busca, setBusca, setSelecionado, renovar, alterarStatus, salvarObservacao }) {
+  return <><section style={styles.toolbar}><input placeholder="Buscar cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /></section><section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum usuário cadastrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.email || "-"}</span></div><div><b>{u.codigo}</b><span>{u.cpf || "-"}</span></div><div><Badge status={u.status} /><span>Validade: {formatarData(u.validade)}</span></div><div style={styles.rowActions}><button style={styles.actionButton} onClick={() => setSelecionado(u)}>Detalhes</button><button style={styles.successButton} onClick={() => renovar(u)}>Renovar</button><button style={styles.neutralButton} onClick={() => salvarObservacao(u)}>Obs.</button><button style={styles.dangerButton} onClick={() => alterarStatus(u, STATUS.BLOQUEADO)}>Bloquear</button></div></div>)}</section></>;
 }
 
-function Documentos({ usuarios, abrirTermo, setEditando }) {
-  return <div style={styles.cardList}>{usuarios.map((u) => <article key={u.id} style={styles.codeCard}><CardHeader u={u} /><div style={styles.infoGrid}><Info label="Termo" value={u.termos_pdf ? "Registrado" : "Gerar PDF"} /><Info label="Comprovante" value={u.comprovante_pdf ? "Registrado" : "Não anexado"} /><Info label="Envios" value={u.envios ?? 0} /><Info label="Alterações" value={u.alteracoes ?? 0} /></div><div style={styles.actions}><button style={styles.actionButton} onClick={() => abrirTermo(u)}>Gerar termo PDF</button>{u.comprovante_pdf && <a style={styles.successLink} href={u.comprovante_pdf} target="_blank" rel="noreferrer">Abrir comprovante</a>}<button style={styles.neutralButton} onClick={() => setEditando(u)}>Editar links/docs</button></div></article>)}{!usuarios.length && <Empty text="Nenhum documento ainda." />}</div>;
+function Pagamentos({ lista, renovar }) {
+  return <section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum pagamento para exibir." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.codigo}</span></div><div><b>{u.pagamento_status || "Pendente"}</b><span>Pago em: {formatarDataHora(u.pago_em)}</span></div><div><b>Validade</b><span>{formatarData(u.validade)}</span></div><button style={styles.successButton} onClick={() => renovar(u)}>Marcar pago e renovar 90 dias</button></div>)}</section>;
 }
 
-function Erros({ usuarios, registrarErroTeste }) {
-  return <div style={styles.cardList}>{usuarios.map((u) => <article key={u.id} style={styles.codeCard}><CardHeader u={u} /><p style={styles.warning}><b>Último erro:</b> {u.ultimo_erro}</p><p style={styles.muted}>Data: {formatarDataHora(u.ultimo_erro_em)}</p><button style={styles.dangerButton} onClick={() => registrarErroTeste(u)}>Atualizar erro</button></article>)}{!usuarios.length && <Empty text="Nenhum erro registrado." />}</div>;
+function Documentos({ lista }) {
+  return <section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum documento registrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.codigo}</span></div><DocLink label="Termos" url={u.termos_pdf} /><DocLink label="Comprovante" url={u.comprovante_pdf} /><div><b>Alterações</b><span>{u.alteracoes || 0}</span></div></div>)}</section>;
 }
 
-function CardList({ usuarios, copiarCodigo, bloquear, liberar, liberarDeNovo, setSelecionado }) {
-  return <section style={styles.cardList}>{usuarios.map((u) => <article key={u.id} style={styles.codeCard}><CardHeader u={u} /><div style={styles.infoGrid}><Info label="Nome" value={u.nome || "Ainda não vinculado"} /><Info label="CPF" value={u.cpf || "-"} /><Info label="Telefone" value={u.telefone || "-"} /><Info label="E-mail" value={u.email || "-"} /><Info label="Validade" value={formatarData(u.validade)} /><Info label="Usado em" value={formatarDataHora(u.usado_em)} /><Info label="Envios" value={u.envios ?? 0} /><Info label="Alterações" value={u.alteracoes ?? 0} /></div><div style={styles.actions}><button style={styles.actionButton} onClick={() => copiarCodigo(u.codigo)}>Copiar</button><button style={styles.neutralButton} onClick={() => setSelecionado(u)}>Detalhes</button>{statusReal(u) !== STATUS.BLOQUEADO ? <button style={styles.dangerButton} onClick={() => bloquear(u)}>Bloquear</button> : <button style={styles.successButton} onClick={() => liberar(u)}>Liberar</button>}{statusReal(u) !== STATUS.DISPONIVEL && <button style={styles.neutralButton} onClick={() => liberarDeNovo(u)}>Liberar de novo</button>}</div></article>)}{!usuarios.length && <Empty text="Nenhum código encontrado." />}</section>;
+function Erros({ lista }) {
+  return <section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum erro registrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome || u.codigo}</strong><span>{formatarDataHora(u.ultimo_erro_em)}</span></div><div style={{ flex: 2 }}><b>Erro</b><span>{u.ultimo_erro}</span></div></div>)}</section>;
 }
 
-function CardHeader({ u }) {
-  return <div style={styles.codeHeader}><div><span style={styles.codeLabel}>Código de acesso</span><h2 style={styles.code}>{u.codigo}</h2><p style={styles.muted}>{u.nome || "Ainda não vinculado"}</p></div><Badge status={statusReal(u)} /></div>;
+function ModalCliente({ item, fechar, renovar, alterarStatus }) {
+  return <div style={styles.modalBg}><div style={styles.modal}><div style={styles.modalHeader}><div><span style={styles.eyebrow}>Cliente</span><h2 style={styles.modalTitle}>{item.nome || item.codigo}</h2></div><button style={styles.closeButton} onClick={fechar}>Fechar</button></div><div style={styles.infoGrid}><Info label="Código" value={item.codigo} /><Info label="Status" value={item.status} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Telefone" value={item.telefone || "-"} /><Info label="E-mail" value={item.email || "-"} /><Info label="Cargo" value={item.cargo || "-"} /><Info label="Órgão" value={item.orgao || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Envios" value={item.envios || 0} /><Info label="Alterações" value={item.alteracoes || 0} /><Info label="Pagamento" value={item.pagamento_status || "Pendente"} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div>{item.observacoes && <p style={styles.note}>{item.observacoes}</p>}<div style={styles.actions}><button style={styles.successButton} onClick={() => renovar(item)}>Renovar 90 dias</button><button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button><button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar código</button></div></div></div>;
 }
 
-function ActionGroup({ u, setEditando, bloquear, liberar, renovar, abrirTermo }) {
-  return <div style={styles.inlineActions}><button style={styles.actionButton} onClick={() => setEditando(u)}>Editar</button><button style={styles.successButton} onClick={() => renovar(u)}>Renovar</button>{statusReal(u) === STATUS.BLOQUEADO ? <button style={styles.successButton} onClick={() => liberar(u)}>Liberar</button> : <button style={styles.dangerButton} onClick={() => bloquear(u)}>Bloquear</button>}<button style={styles.neutralButton} onClick={() => abrirTermo(u)}>Termo</button></div>;
-}
-
-function Detalhes({ usuario, fechar, copiarCodigo, renovar, bloquear, liberar, abrirTermo, registrarErroTeste }) {
-  return <div style={styles.modalBg}><div style={styles.modal}><button style={styles.close} onClick={fechar}>×</button><CardHeader u={usuario} /><div style={styles.infoGrid}><Info label="CPF" value={usuario.cpf || "-"} /><Info label="Telefone" value={usuario.telefone || "-"} /><Info label="E-mail" value={usuario.email || "-"} /><Info label="Sistema" value={usuario.sistema || "-"} /><Info label="Cargo" value={usuario.cargo || "-"} /><Info label="Órgão" value={usuario.orgao || "-"} /><Info label="Matrícula" value={usuario.mat1 || "-"} /><Info label="Unidade" value={usuario.unid1 || "-"} /><Info label="Validade" value={formatarData(usuario.validade)} /><Info label="Usado em" value={formatarDataHora(usuario.usado_em)} /><Info label="Envios" value={usuario.envios ?? 0} /><Info label="Alterações" value={usuario.alteracoes ?? 0} /></div>{usuario.observacoes && <p style={styles.warning}>{usuario.observacoes}</p>}<div style={styles.actions}><button style={styles.actionButton} onClick={() => copiarCodigo(usuario.codigo)}>Copiar código</button><button style={styles.successButton} onClick={() => renovar(usuario)}>Renovar 90 dias</button><button style={styles.neutralButton} onClick={() => abrirTermo(usuario)}>Gerar termo</button><button style={styles.dangerButton} onClick={() => registrarErroTeste(usuario)}>Registrar erro</button>{statusReal(usuario) === STATUS.BLOQUEADO ? <button style={styles.successButton} onClick={() => liberar(usuario)}>Liberar</button> : <button style={styles.dangerButton} onClick={() => bloquear(usuario)}>Bloquear</button>}</div></div></div>;
-}
-
-function Editor({ usuario, setUsuario, salvar, fechar }) {
-  const fields = [["nome","Nome"],["cpf","CPF"],["telefone","Telefone"],["email","E-mail"],["sistema","Sistema"],["cargo","Cargo"],["orgao","Órgão"],["mat1","Matrícula 1"],["mat2","Matrícula 2"],["unid1","Unidade 1"],["unid2","Unidade 2"],["sit","Situação"],["validade","Validade"],["comprovante_pdf","Link comprovante"],["termos_pdf","Link termo"],["observacoes","Observações"]];
-  return <div style={styles.modalBg}><div style={styles.modal}><button style={styles.close} onClick={fechar}>×</button><h2>Editar cliente</h2><div style={styles.formGrid}>{fields.map(([key,label]) => <label key={key} style={styles.label}><span>{label}</span><input type={key === "validade" ? "date" : "text"} value={usuario[key] || ""} onChange={(e) => setUsuario({ ...usuario, [key]: e.target.value })} style={styles.input} /></label>)}</div><button style={styles.primaryButton} onClick={salvar}>Salvar alterações</button></div></div>;
-}
-
-function Stat({ label, value, danger, warn }) {
-  return <div style={{ ...styles.statCard, ...(danger ? styles.statDanger : {}), ...(warn ? styles.statWarn : {}) }}><span style={styles.statNumber}>{value}</span><span style={styles.statLabel}>{label}</span></div>;
-}
-
-function MiniRow({ u, extra }) {
-  return <div style={styles.miniRow}><div><b>{u.nome || u.codigo}</b><small>{u.codigo}</small></div><span>{extra || formatarData(u.validade)}</span></div>;
-}
-
-function Badge({ status }) {
-  return <span style={{ ...styles.badge, ...badgeStyle(status) }}>{status}</span>;
+function DocLink({ label, url }) {
+  return <div><b>{label}</b><span>{url ? <a href={url} target="_blank" rel="noreferrer">Abrir arquivo</a> : "Não anexado"}</span></div>;
 }
 
 function Info({ label, value }) {
   return <div style={styles.infoItem}><span>{label}</span><strong>{value}</strong></div>;
 }
 
+function Badge({ status }) {
+  return <span style={{ ...styles.badge, ...badgeStyle(status) }}>{status || "-"}</span>;
+}
+
 function Empty({ text }) {
-  return <div style={styles.empty}>{text}</div>;
+  return <div style={styles.empty}><h3>{text}</h3><p>Use o menu lateral para continuar.</p></div>;
+}
+
+function badgeStyle(status) {
+  if (status === STATUS.ATIVO) return { background: "#dcfce7", color: "#166534" };
+  if (status === STATUS.BLOQUEADO) return { background: "#fee2e2", color: "#991b1b" };
+  if (status === STATUS.VENCIDO) return { background: "#fef3c7", color: "#92400e" };
+  return { background: "#dbeafe", color: "#1d4ed8" };
 }
 
 const styles = {
-  loginPage: { minHeight: "100vh", background: "linear-gradient(135deg,#06111f,#172554)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Inter, Arial, sans-serif" },
-  loginCard: { width: "100%", maxWidth: 420, background: "white", borderRadius: 28, padding: 32, boxShadow: "0 30px 80px rgba(0,0,0,.35)" },
-  logo: { width: 64, height: 64, borderRadius: 20, background: "#2563eb", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 24, marginBottom: 18 },
-  loginTitle: { margin: 0, color: "#0f172a", fontSize: 32 },
-  loginText: { color: "#64748b", fontWeight: 700 },
-  hint: { display: "block", marginTop: 12, color: "#94a3b8", fontWeight: 700 },
-  page: { minHeight: "100vh", background: "#eef2f7", display: "flex", fontFamily: "Inter, Arial, sans-serif", color: "#0f172a" },
-  sidebar: { width: 272, background: "#0f172a", color: "white", padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box" },
+  loginPage: { minHeight: "100vh", background: "#f3f7ff", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Inter, Arial, sans-serif" },
+  loginCard: { width: "100%", maxWidth: 390, background: "white", borderRadius: 28, padding: 28, boxShadow: "0 24px 60px rgba(15,23,42,.14)", border: "1px solid #dbeafe" },
+  logo: { width: 52, height: 52, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", background: "#1d4ed8", color: "white", fontWeight: 900, fontSize: 20, marginBottom: 18 },
+  loginTitle: { margin: 0, color: "#0f172a", fontSize: 28, lineHeight: 1.05 },
+  loginText: { color: "#475569", fontWeight: 700, marginBottom: 22, lineHeight: 1.5 },
+  hint: { display: "block", marginTop: 14, color: "#94a3b8", fontWeight: 700 },
+  page: { minHeight: "100vh", background: "#f1f5fb", color: "#0f172a", display: "flex", fontFamily: "Inter, Arial, sans-serif" },
+  sidebar: { width: 250, background: "#081225", color: "white", padding: 22, display: "flex", flexDirection: "column", justifyContent: "space-between", position: "sticky", top: 0, height: "100vh", boxSizing: "border-box" },
   brandBox: { display: "flex", gap: 12, alignItems: "center", marginBottom: 28 },
-  logoSmall: { width: 48, height: 48, borderRadius: 16, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900 },
+  logoSmall: { width: 44, height: 44, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "#1d4ed8", color: "white", fontWeight: 900 },
   mutedBlock: { display: "block", color: "#94a3b8", fontSize: 13, fontWeight: 700, marginTop: 3 },
-  menuActive: { width: "100%", padding: 14, borderRadius: 14, border: 0, background: "#2563eb", color: "white", fontWeight: 900, textAlign: "left", marginBottom: 9, cursor: "pointer" },
-  menuButton: { width: "100%", padding: 14, borderRadius: 14, border: "1px solid rgba(255,255,255,.12)", background: "transparent", color: "#cbd5e1", fontWeight: 900, textAlign: "left", marginBottom: 9, cursor: "pointer" },
-  logoutButton: { padding: 14, borderRadius: 14, border: 0, background: "#dc2626", color: "white", fontWeight: 900, cursor: "pointer" },
-  main: { flex: 1, padding: 34, maxWidth: 1420, margin: "0 auto", boxSizing: "border-box", overflow: "hidden" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, marginBottom: 24 },
-  eyebrow: { color: "#2563eb", fontWeight: 900, textTransform: "uppercase", fontSize: 13, letterSpacing: 1 },
-  title: { fontSize: 42, margin: "6px 0 8px", letterSpacing: -1.2 },
+  menuActive: { width: "100%", padding: "13px 14px", borderRadius: 14, border: 0, background: "#1d4ed8", color: "white", fontWeight: 900, textAlign: "left", marginBottom: 8, cursor: "pointer" },
+  menuButton: { width: "100%", padding: "13px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "#cbd5e1", fontWeight: 900, textAlign: "left", cursor: "pointer", marginBottom: 8 },
+  logoutButton: { padding: 13, borderRadius: 14, border: 0, background: "#dc2626", color: "white", fontWeight: 900, cursor: "pointer" },
+  main: { flex: 1, padding: 30, maxWidth: 1280, margin: "0 auto", boxSizing: "border-box" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, marginBottom: 22 },
+  eyebrow: { color: "#1d4ed8", fontWeight: 900, textTransform: "uppercase", fontSize: 12, letterSpacing: 1 },
+  title: { fontSize: 36, margin: "5px 0", letterSpacing: -1.2, lineHeight: 1.05 },
   subtitle: { color: "#64748b", margin: 0, fontWeight: 700 },
-  generateButton: { border: 0, borderRadius: 18, padding: "16px 22px", background: "#16a34a", color: "white", fontSize: 16, fontWeight: 900, cursor: "pointer", boxShadow: "0 14px 30px rgba(22,163,74,.25)" },
-  generateButtonSmall: { border: 0, borderRadius: 14, padding: "12px 18px", background: "#16a34a", color: "white", fontWeight: 900, cursor: "pointer" },
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4,minmax(160px,1fr))", gap: 14, marginBottom: 18 },
-  statCard: { background: "white", borderRadius: 22, padding: 18, boxShadow: "0 10px 30px rgba(15,23,42,.06)", border: "1px solid #e2e8f0" },
-  statDanger: { borderColor: "#fecaca", background: "#fff7f7" },
-  statWarn: { borderColor: "#fde68a", background: "#fffbeb" },
-  statNumber: { display: "block", fontSize: 32, fontWeight: 950 },
-  statLabel: { display: "block", color: "#64748b", fontWeight: 900, marginTop: 4 },
-  twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 },
-  panel: { background: "white", borderRadius: 24, padding: 22, boxShadow: "0 10px 30px rgba(15,23,42,.06)", border: "1px solid #e2e8f0" },
-  panelInline: { background: "white", borderRadius: 22, padding: 14, display: "flex", alignItems: "center", gap: 12, boxShadow: "0 10px 30px rgba(15,23,42,.06)", marginBottom: 18 },
-  toolbar: { background: "white", borderRadius: 22, padding: 14, display: "flex", gap: 12, boxShadow: "0 10px 30px rgba(15,23,42,.06)", marginBottom: 18 },
-  searchInput: { flex: 1, border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "14px 16px", fontSize: 15, outline: "none", fontWeight: 700 },
-  select: { border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "0 14px", fontWeight: 800 },
-  numberInput: { width: 80, border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 14, padding: "12px", fontWeight: 900 },
-  cardList: { display: "grid", gap: 16 },
-  codeCard: { background: "white", borderRadius: 26, padding: 22, boxShadow: "0 12px 32px rgba(15,23,42,.07)", border: "1px solid #e2e8f0" },
-  codeHeader: { display: "flex", justifyContent: "space-between", gap: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 16, marginBottom: 16 },
-  codeLabel: { color: "#64748b", fontWeight: 900, fontSize: 13, textTransform: "uppercase" },
-  code: { margin: "5px 0 0", fontSize: 30, letterSpacing: 1 },
-  muted: { color: "#64748b", fontWeight: 700, margin: "6px 0 0" },
-  badge: { padding: "8px 12px", borderRadius: 999, fontWeight: 950, fontSize: 13, whiteSpace: "nowrap", height: "fit-content" },
-  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4,minmax(150px,1fr))", gap: 10 },
-  infoItem: { background: "#f8fafc", borderRadius: 16, padding: 13, border: "1px solid #e2e8f0", overflow: "hidden" },
-  actions: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 },
-  inlineActions: { display: "flex", gap: 8, flexWrap: "wrap" },
-  actionButton: { border: 0, borderRadius: 14, background: "#2563eb", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer", textDecoration: "none" },
-  dangerButton: { border: 0, borderRadius: 14, background: "#dc2626", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  successButton: { border: 0, borderRadius: 14, background: "#16a34a", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  neutralButton: { border: 0, borderRadius: 14, background: "#e2e8f0", color: "#0f172a", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
-  successLink: { borderRadius: 14, background: "#16a34a", color: "white", padding: "10px 13px", fontWeight: 900, textDecoration: "none" },
-  warning: { margin: "14px 0", background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa", padding: 12, borderRadius: 14, fontWeight: 800 },
-  empty: { textAlign: "center", background: "white", borderRadius: 24, padding: 28, color: "#64748b", boxShadow: "0 10px 30px rgba(15,23,42,.06)", fontWeight: 800 },
-  input: { width: "100%", boxSizing: "border-box", padding: "14px 16px", borderRadius: 16, border: "1px solid #dbe3ef", marginBottom: 12, fontSize: 15, outline: "none", background: "#f8fafc", color: "#0f172a", fontWeight: 700 },
-  primaryButton: { width: "100%", padding: 15, border: 0, borderRadius: 16, background: "#2563eb", color: "white", fontWeight: 950, fontSize: 16, cursor: "pointer" },
-  tableWrap: { background: "white", borderRadius: 24, overflow: "auto", boxShadow: "0 10px 30px rgba(15,23,42,.06)" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  miniRow: { display: "flex", justifyContent: "space-between", gap: 12, padding: "12px 0", borderBottom: "1px solid #e2e8f0" },
-  modalBg: { position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 99, padding: 20 },
-  modal: { width: "min(980px, 96vw)", maxHeight: "88vh", overflow: "auto", background: "white", borderRadius: 28, padding: 26, position: "relative", boxShadow: "0 30px 80px rgba(0,0,0,.35)" },
-  close: { position: "absolute", right: 18, top: 14, border: 0, background: "#e2e8f0", borderRadius: 12, width: 36, height: 36, fontWeight: 900, cursor: "pointer" },
-  formGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 },
-  label: { display: "grid", fontWeight: 900, color: "#475569" },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: 14 },
+  statCard: { background: "white", border: "1px solid #dbeafe", borderRadius: 22, padding: 20, textAlign: "left", cursor: "pointer", boxShadow: "0 12px 30px rgba(15,23,42,.06)" },
+  statNumber: { display: "block", fontSize: 30, fontWeight: 950, color: "#1d4ed8" },
+  statLabel: { display: "block", color: "#475569", fontWeight: 900, marginTop: 4 },
+  panelCard: { background: "white", border: "1px solid #dbeafe", borderRadius: 24, padding: 22, display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", boxShadow: "0 12px 30px rgba(15,23,42,.06)", marginBottom: 16 },
+  sectionTitle: { margin: 0, fontSize: 24 },
+  sectionText: { margin: "6px 0 0", color: "#64748b", fontWeight: 700 },
+  toolbar: { background: "white", borderRadius: 22, padding: 12, display: "flex", gap: 10, boxShadow: "0 12px 30px rgba(15,23,42,.06)", border: "1px solid #dbeafe", marginBottom: 16 },
+  searchInput: { flex: 1, border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "13px 15px", fontSize: 15, outline: "none", fontWeight: 700, boxSizing: "border-box" },
+  select: { border: "1px solid #dbe3ef", background: "#f8fafc", borderRadius: 16, padding: "13px 15px", fontWeight: 900 },
+  input: { width: "100%", boxSizing: "border-box", padding: "14px 15px", borderRadius: 16, border: "1px solid #dbe3ef", marginBottom: 12, fontSize: 15, outline: "none", background: "#f8fafc", color: "#0f172a", fontWeight: 700 },
+  smallInput: { width: 76, padding: "12px", borderRadius: 14, border: "1px solid #dbe3ef", fontWeight: 900 },
+  primaryButton: { width: "100%", padding: 15, border: 0, borderRadius: 16, background: "#1d4ed8", color: "white", fontWeight: 950, fontSize: 16, cursor: "pointer" },
+  primarySmall: { border: 0, borderRadius: 16, background: "#1d4ed8", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
+  secondaryButton: { border: 0, borderRadius: 16, background: "#0f172a", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
+  darkButton: { border: 0, borderRadius: 16, background: "#0f172a", color: "white", padding: "13px 16px", fontWeight: 900, cursor: "pointer" },
+  inlineActions: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
+  cardList: { display: "grid", gap: 14 },
+  codeCard: { background: "white", borderRadius: 24, padding: 20, boxShadow: "0 12px 30px rgba(15,23,42,.06)", border: "1px solid #dbeafe" },
+  codeHeader: { display: "flex", justifyContent: "space-between", gap: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 14, marginBottom: 14 },
+  codeLabel: { color: "#64748b", fontWeight: 900, fontSize: 12, textTransform: "uppercase" },
+  code: { margin: "4px 0 0", fontSize: 26, letterSpacing: 1 },
+  badge: { padding: "7px 11px", borderRadius: 999, fontWeight: 950, fontSize: 12, whiteSpace: "nowrap", display: "inline-block" },
+  infoGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(140px, 1fr))", gap: 10 },
+  infoItem: { background: "#f8fafc", borderRadius: 16, padding: 12, border: "1px solid #e2e8f0" },
+  actions: { display: "flex", gap: 9, flexWrap: "wrap", marginTop: 14 },
+  actionButton: { border: 0, borderRadius: 13, background: "#1d4ed8", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
+  dangerButton: { border: 0, borderRadius: 13, background: "#dc2626", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
+  successButton: { border: 0, borderRadius: 13, background: "#16a34a", color: "white", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
+  neutralButton: { border: 0, borderRadius: 13, background: "#e2e8f0", color: "#0f172a", padding: "10px 13px", fontWeight: 900, cursor: "pointer" },
+  tableCard: { background: "white", borderRadius: 24, border: "1px solid #dbeafe", boxShadow: "0 12px 30px rgba(15,23,42,.06)", overflow: "hidden" },
+  row: { display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr", gap: 12, alignItems: "center", padding: 16, borderBottom: "1px solid #e2e8f0" },
+  rowActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  empty: { textAlign: "center", background: "white", borderRadius: 24, padding: 38, color: "#64748b" },
+  modalBg: { position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 },
+  modal: { width: "100%", maxWidth: 900, background: "white", borderRadius: 26, padding: 24, boxShadow: "0 30px 90px rgba(0,0,0,.3)" },
+  modalHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18 },
+  modalTitle: { margin: "4px 0 0", fontSize: 28 },
+  closeButton: { border: 0, borderRadius: 13, background: "#e2e8f0", padding: "10px 14px", fontWeight: 900, cursor: "pointer" },
+  note: { background: "#eff6ff", border: "1px solid #bfdbfe", padding: 12, borderRadius: 14, color: "#1e3a8a", fontWeight: 800 },
 };
