@@ -13,16 +13,16 @@ const STATUS = {
 
 const colors = {
   bg: "#f3f4f6",
-  sidebar: "#111827",
-  sidebarLine: "#1f2937",
-  blue: "#1d4ed8",
-  green: "#059669",
-  red: "#dc2626",
-  yellow: "#d97706",
+  sidebar: "#171b24",
+  sidebarLine: "#272d38",
+  blue: "#3b7bf3",
+  green: "#10b981",
+  red: "#ef4444",
+  yellow: "#f59e0b",
   text: "#111827",
-  muted: "#9ca3af",
-  soft: "#6b7280",
-  border: "#e5e7eb",
+  muted: "#7b8496",
+  soft: "#5f697a",
+  border: "#dfe4ec",
   white: "#ffffff",
 };
 
@@ -70,29 +70,33 @@ function iniciais(nome) {
 }
 
 function statusView(status) {
-  if (status === STATUS.ATIVO) return { label: "Ativa", cls: "active" };
-  if (status === STATUS.BLOQUEADO) return { label: "Bloqueada", cls: "expired" };
-  if (status === STATUS.VENCIDO) return { label: "Expirada", cls: "expired" };
-  return { label: "Livre", cls: "trial" };
+  if (status === STATUS.ATIVO) return { label: "Ativo", cls: "active" };
+  if (status === STATUS.BLOQUEADO) return { label: "Bloqueado", cls: "blocked" };
+  if (status === STATUS.VENCIDO) return { label: "Vencido", cls: "expired" };
+  return { label: "Disponível", cls: "available" };
 }
 
-const Icon = ({ children, size = 16 }) => (
+const Icon = ({ children, size = 18 }) => (
   <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
     {children}
   </svg>
 );
 
 const I = {
-  dashboard: <Icon><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></Icon>,
+  dashboard: <Icon><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></Icon>,
   key: <Icon><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15 8 2 2" /><path d="m18 5 2 2" /></Icon>,
   users: <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></Icon>,
-  dollar: <Icon><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" /></Icon>,
+  card: <Icon><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></Icon>,
   file: <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></Icon>,
   settings: <Icon><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.32.4.7.6 1.1.6H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" /></Icon>,
   download: <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></Icon>,
   plus: <Icon><path d="M12 5v14" /><path d="M5 12h14" /></Icon>,
-  search: <Icon><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>,
-  filter: <Icon><path d="M4 6h16" /><path d="M8 12h8" /><path d="M11 18h2" /></Icon>,
+  search: <Icon size={16}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>,
+  filter: <Icon size={16}><path d="M4 6h16" /><path d="M8 12h8" /><path d="M11 18h2" /></Icon>,
+  edit: <Icon size={16}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></Icon>,
+  copy: <Icon size={16}><rect x="9" y="9" width="13" height="13" rx="2" /><rect x="2" y="2" width="13" height="13" rx="2" /></Icon>,
+  renew: <Icon size={16}><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></Icon>,
+  lock: <Icon size={16}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></Icon>,
 };
 
 export default function AdminPanel() {
@@ -105,6 +109,14 @@ export default function AdminPanel() {
   const [lote, setLote] = useState(5);
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [modalDetalhes, setModalDetalhes] = useState(null);
+  const [modalBloqueio, setModalBloqueio] = useState(null);
+
+  function aviso(texto, tipo = "ok") {
+    setToast({ texto, tipo });
+    setTimeout(() => setToast(null), 2600);
+  }
 
   useEffect(() => {
     if (logado) carregar();
@@ -126,7 +138,7 @@ export default function AdminPanel() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao carregar dados.");
+      aviso("Erro ao carregar dados.", "erro");
     } else {
       setUsuarios(data || []);
     }
@@ -140,7 +152,7 @@ export default function AdminPanel() {
       localStorage.setItem("painel_atestado_logado", "sim");
       setLogado(true);
     } else {
-      alert("Login inválido.");
+      aviso("Login inválido.", "erro");
     }
   }
 
@@ -162,20 +174,20 @@ export default function AdminPanel() {
         await carregar();
         await navigator.clipboard?.writeText(codigo).catch(() => {});
         setGerando(false);
-        alert(`Código gerado e copiado: ${codigo}`);
+        aviso(`Código ${codigo} gerado e copiado.`);
         return;
       }
 
       if (!String(error.message || "").toLowerCase().includes("duplicate")) {
         console.error(error);
         setGerando(false);
-        alert("Erro ao gerar código.");
+        aviso("Erro ao gerar código.", "erro");
         return;
       }
     }
 
     setGerando(false);
-    alert("Não foi possível gerar código único.");
+    aviso("Não foi possível gerar código único.", "erro");
   }
 
   async function gerarLote() {
@@ -197,31 +209,38 @@ export default function AdminPanel() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao gerar lote.");
+      aviso("Erro ao gerar lote.", "erro");
       return;
     }
 
     await carregar();
-    alert(`${qtd} códigos gerados.`);
+    aviso(`${qtd} códigos gerados.`);
   }
 
   async function copiarCodigo(codigo) {
     await navigator.clipboard?.writeText(codigo).catch(() => {});
-    alert(`Código copiado: ${codigo}`);
+    aviso(`Código ${codigo} copiado.`);
   }
 
-  async function bloquear(row) {
-    const motivo = prompt("Motivo do bloqueio:", row.bloqueado_motivo || "") || "Bloqueio manual";
-    const { error } = await supabase.from("usuarios").update({ status: STATUS.BLOQUEADO, bloqueado_motivo: motivo }).eq("id", row.id);
+  async function bloquear(row, motivo) {
+    const { error } = await supabase
+      .from("usuarios")
+      .update({ status: STATUS.BLOQUEADO, bloqueado_motivo: motivo || "Bloqueio manual" })
+      .eq("id", row.id);
+
     if (error) {
-      alert("Erro ao bloquear.");
+      aviso("Erro ao bloquear.", "erro");
       return;
     }
-    carregar();
+
+    setModalBloqueio(null);
+    await carregar();
+    aviso("Licença bloqueada.");
   }
 
   async function renovar(row) {
     const novaValidade = validade90Dias();
+
     const { error } = await supabase
       .from("usuarios")
       .update({
@@ -235,12 +254,12 @@ export default function AdminPanel() {
       .eq("id", row.id);
 
     if (error) {
-      alert("Erro ao renovar.");
+      aviso("Erro ao renovar.", "erro");
       return;
     }
 
-    carregar();
-    alert(`Renovado até ${formatarData(novaValidade)}.`);
+    await carregar();
+    aviso(`Renovado até ${formatarData(novaValidade)}.`);
   }
 
   const stats = useMemo(() => {
@@ -281,6 +300,7 @@ export default function AdminPanel() {
             <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
             <button type="submit">Entrar</button>
           </form>
+          {toast && <Toast toast={toast} />}
         </div>
       </>
     );
@@ -304,7 +324,7 @@ export default function AdminPanel() {
             <MenuItem active={aba === "Dashboard"} onClick={() => setAba("Dashboard")} icon={I.dashboard} label="Dashboard" />
             <MenuItem active={aba === "Licenças"} onClick={() => setAba("Licenças")} icon={I.key} label="Licenças" badge={stats.total} />
             <MenuItem active={aba === "Clientes"} onClick={() => setAba("Clientes")} icon={I.users} label="Clientes" badge={stats.clientes} />
-            <MenuItem active={aba === "Faturamento"} onClick={() => setAba("Faturamento")} icon={I.dollar} label="Faturamento" />
+            <MenuItem active={aba === "Faturamento"} onClick={() => setAba("Faturamento")} icon={I.card} label="Faturamento" />
 
             <MenuTitle>Sistema</MenuTitle>
             <MenuItem active={aba === "Documentos"} onClick={() => setAba("Documentos")} icon={I.file} label="Documentos" />
@@ -331,52 +351,81 @@ export default function AdminPanel() {
             <div className="top-actions">
               <span className="production"><i /> Produção</span>
               <button className="btn ghost">{I.download} Exportar</button>
-              <button className="btn primary" onClick={gerarNovoCodigo}>{I.plus} {gerando ? "Gerando..." : "Nova Licença"}</button>
+              <button className="btn primary" onClick={gerarNovoCodigo}>{I.plus} {gerando ? "Gerando..." : "Novo código"}</button>
             </div>
           </header>
 
-          {(aba === "Dashboard" || aba === "Licenças") && (
-            <section className="kpis">
-              <Kpi label="Licenças Ativas" value={stats.ativo} icon={I.key} color="blue" />
-              <Kpi label="Códigos Livres" value={stats.livre} icon={I.dollar} color="green" />
-              <Kpi label="Bloqueadas/Vencidas" value={stats.bloqueado + stats.vencido} icon={I.file} color="red" />
-              <Kpi label="Erros Abertos" value={stats.erros} icon={I.file} color="yellow" />
-            </section>
+          {aba === "Dashboard" && (
+            <>
+              <section className="kpis">
+                <Kpi label="Total de códigos" value={stats.total} small={`${stats.livre} disponíveis`} icon={I.key} color="blue" />
+                <Kpi label="Ativos" value={stats.ativo} small="em uso" icon={I.users} color="green" />
+                <Kpi label="Pendentes de pagamento" value={stats.pendente} small="aguardando" icon={I.card} color="yellow" />
+                <Kpi label="Bloqueados / Vencidos" value={stats.bloqueado + stats.vencido} small="requer atenção" icon={I.lock} color="red" />
+              </section>
+
+              <section className="dashboard-only">
+                <h2>Resumo do sistema</h2>
+                <p>Use a aba Licenças para visualizar, copiar, renovar ou bloquear códigos.</p>
+                <div>
+                  <button className="btn primary" onClick={() => setAba("Licenças")}>Ir para licenças</button>
+                  <button className="btn ghost" onClick={gerarNovoCodigo}>Gerar novo código</button>
+                </div>
+              </section>
+            </>
           )}
 
           {aba === "Licenças" && (
-            <section className="generator">
-              <div>
-                <h2>Gerar licenças</h2>
-                <p>Código de 5 dígitos, sem hífen, vinculado pelo app.</p>
-              </div>
-              <div>
-                <button className="btn primary" onClick={gerarNovoCodigo}>Gerar 1</button>
-                <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} />
-                <button className="btn ghost" onClick={gerarLote}>Gerar lote</button>
-              </div>
-            </section>
+            <>
+              <section className="generator">
+                <div>
+                  <h2>Gerar licenças</h2>
+                  <p>Código de 5 dígitos, sem hífen, vinculado pelo app.</p>
+                </div>
+                <div>
+                  <button className="btn primary" onClick={gerarNovoCodigo}>Gerar 1</button>
+                  <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} />
+                  <button className="btn ghost" onClick={gerarLote}>Gerar lote</button>
+                </div>
+              </section>
+
+              <LicenseTable
+                title="Licenças"
+                subtitle="Todos os códigos de acesso cadastrados"
+                rows={lista}
+                stats={stats}
+                search={busca}
+                setSearch={setBusca}
+                copiarCodigo={copiarCodigo}
+                renovar={renovar}
+                abrirDetalhes={setModalDetalhes}
+                abrirBloqueio={setModalBloqueio}
+              />
+            </>
           )}
 
-          {aba === "Faturamento" ? (
-            <SimpleTable title="Faturamento" rows={lista} type="pay" renovar={renovar} />
-          ) : aba === "Documentos" ? (
-            <SimpleTable title="Documentos" rows={lista} type="docs" />
-          ) : aba === "Erros" ? (
-            <SimpleTable title="Erros" rows={lista} type="errors" />
-          ) : (
+          {aba === "Clientes" && (
             <LicenseTable
-              title={aba === "Clientes" ? "Clientes — Todas as Contas" : "Licenças — Todas as Contas"}
-              subtitle={aba === "Clientes" ? "Clientes que já se cadastraram pelo app" : "Gerencie, filtre e exporte registros de licença"}
+              title="Clientes"
+              subtitle="Clientes que já se cadastraram pelo app"
               rows={lista}
               stats={stats}
               search={busca}
               setSearch={setBusca}
               copiarCodigo={copiarCodigo}
               renovar={renovar}
-              bloquear={bloquear}
+              abrirDetalhes={setModalDetalhes}
+              abrirBloqueio={setModalBloqueio}
             />
           )}
+
+          {aba === "Faturamento" && <SimpleTable title="Faturamento" rows={lista} type="pay" renovar={renovar} />}
+          {aba === "Documentos" && <SimpleTable title="Documentos" rows={lista} type="docs" />}
+          {aba === "Erros" && <SimpleTable title="Erros" rows={lista} type="errors" />}
+
+          {toast && <Toast toast={toast} />}
+          {modalDetalhes && <DetailsModal row={modalDetalhes} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} />}
+          {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
         </main>
       </div>
     </>
@@ -397,7 +446,7 @@ function MenuItem({ active, onClick, icon, label, badge }) {
   );
 }
 
-function Kpi({ label, value, icon, color }) {
+function Kpi({ label, value, small, icon, color }) {
   return (
     <article className={`kpi ${color}`}>
       <div className="kpi-top">
@@ -405,12 +454,15 @@ function Kpi({ label, value, icon, color }) {
         <i>{icon}</i>
       </div>
       <strong>{value}</strong>
-      <em />
+      <p>{small}</p>
+      <div className="fake-chart">
+        {[1,2,3,4,5,6].map((n) => <b key={n} style={{ height: 8 + n * 4 }} />)}
+      </div>
     </article>
   );
 }
 
-function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarCodigo, renovar, bloquear }) {
+function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarCodigo, renovar, abrirDetalhes, abrirBloqueio }) {
   return (
     <section className="table-card">
       <div className="table-title">
@@ -466,10 +518,10 @@ function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarC
                 <td>{formatarData(row.validade)}</td>
                 <td>
                   <div className="actions">
-                    <button className="view" onClick={() => alert(detalhes(row))}>Ver</button>
-                    <button onClick={() => copiarCodigo(row.codigo)}>Copiar</button>
-                    {(row.status === STATUS.ATIVO || row.status === STATUS.VENCIDO) && <button onClick={() => renovar(row)}>Renovar</button>}
-                    <button className="danger" onClick={() => bloquear(row)}>Revogar</button>
+                    <button className="view" onClick={() => abrirDetalhes(row)}>{I.edit} Editar</button>
+                    <button onClick={() => copiarCodigo(row.codigo)}>{I.copy} Copiar</button>
+                    {(row.status === STATUS.ATIVO || row.status === STATUS.VENCIDO) && <button onClick={() => renovar(row)}>{I.renew} Renovar</button>}
+                    <button className="danger" onClick={() => abrirBloqueio(row)}>{I.lock} Bloquear</button>
                   </div>
                 </td>
               </tr>
@@ -533,16 +585,81 @@ function StatusBadge({ status }) {
   return <span className={`status ${view.cls}`}><i />{view.label}</span>;
 }
 
-function detalhes(row) {
-  return [
-    `Código: ${row.codigo}`,
-    `Nome: ${row.nome || "-"}`,
-    `CPF: ${row.cpf || "-"}`,
-    `Telefone: ${row.telefone || "-"}`,
-    `E-mail: ${row.email || "-"}`,
-    `Status: ${row.status || "-"}`,
-    `Validade: ${formatarData(row.validade)}`,
-  ].join("\n");
+function Toast({ toast }) {
+  return <div className={toast.tipo === "erro" ? "toast erro" : "toast"}>{toast.texto}</div>;
+}
+
+function DetailsModal({ row, onClose, onRenovar, onBloquear }) {
+  const items = [
+    ["Código", row.codigo],
+    ["Status", row.status || "—"],
+    ["Nome", row.nome || "—"],
+    ["CPF", row.cpf || "—"],
+    ["Telefone", row.telefone || "—"],
+    ["E-mail", row.email || "—"],
+    ["Cargo", row.cargo || "—"],
+    ["Órgão", row.orgao || "—"],
+    ["Validade", formatarData(row.validade)],
+    ["Usado em", formatarDataHora(row.usado_em)],
+    ["Envios", row.envios || 0],
+    ["Alterações", row.alteracoes || 0],
+  ];
+
+  return (
+    <div className="modal-bg">
+      <div className="modal-card">
+        <div className="modal-top">
+          <div>
+            <span>Licença</span>
+            <h2>{row.codigo}</h2>
+          </div>
+          <button onClick={onClose}>Fechar</button>
+        </div>
+
+        <div className="details-grid">
+          {items.map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn primary" onClick={() => onRenovar(row)}>Renovar 90 dias</button>
+          <button className="btn ghost" onClick={() => onBloquear(row)}>Bloquear</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlockModal({ row, onClose, onConfirm }) {
+  const [motivo, setMotivo] = useState(row.bloqueado_motivo || "");
+
+  return (
+    <div className="modal-bg">
+      <div className="modal-card small-modal">
+        <div className="modal-top">
+          <div>
+            <span>Bloqueio</span>
+            <h2>Bloquear licença {row.codigo}</h2>
+          </div>
+          <button onClick={onClose}>Fechar</button>
+        </div>
+
+        <label className="modal-label">
+          Motivo do bloqueio
+          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Exemplo: pagamento vencido" />
+        </label>
+
+        <div className="modal-actions">
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn primary" onClick={() => onConfirm(row, motivo)}>Confirmar bloqueio</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function GlobalStyle() {
@@ -551,7 +668,7 @@ function GlobalStyle() {
       * { box-sizing: border-box; }
       html, body, #root { margin: 0; min-height: 100%; width: 100%; background: ${colors.bg}; }
       body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: ${colors.text}; }
-      button, input { font: inherit; }
+      button, input, textarea { font: inherit; }
 
       .login-page {
         min-height: 100vh;
@@ -565,7 +682,7 @@ function GlobalStyle() {
         background: ${colors.white};
         border: 1px solid ${colors.border};
         border-radius: 12px;
-        box-shadow: ${"0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)"};
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
         padding: 28px;
       }
 
@@ -600,147 +717,113 @@ function GlobalStyle() {
       }
 
       .sidebar {
-        width: 220px;
+        width: 88px;
         min-height: 100vh;
         background: ${colors.sidebar};
-        color: ${colors.sidebarText};
+        color: #cbd5e1;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
       }
 
       .brand {
-        height: 64px;
-        border-bottom: 1px solid ${colors.sidebarLine};
+        height: 92px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 0 20px;
+        justify-content: center;
+      }
+
+      .brand > div:last-child {
+        display: none;
       }
 
       .brand-icon {
-        width: 38px;
-        height: 38px;
+        width: 48px;
+        height: 48px;
         background: ${colors.blue};
         color: #fff;
-        border-radius: 8px;
+        border-radius: 11px;
         display: grid;
         place-items: center;
         font-weight: 700;
       }
 
       .brand-icon.small {
-        width: 30px;
-        height: 30px;
-        border-radius: 7px;
-        font-size: 12px;
-      }
-
-      .brand strong {
-        display: block;
-        color: #fff;
+        width: 48px;
+        height: 48px;
+        border-radius: 11px;
         font-size: 15px;
-      }
-
-      .brand span {
-        display: block;
-        margin-top: 2px;
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: .5px;
       }
 
       nav {
         flex: 1;
-        padding: 14px 12px;
+        padding: 8px 14px;
       }
 
       .menu-title {
-        padding: 14px 8px 7px;
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #374151;
-        font-weight: 700;
+        display: none;
       }
 
       .menu-item {
-        width: 100%;
-        min-height: 40px;
+        width: 60px;
+        height: 60px;
         border: 0;
-        border-radius: 6px;
+        border-radius: 12px;
         background: transparent;
-        color: ${colors.sidebarText};
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0 10px;
+        color: #9ca3af;
+        display: grid;
+        place-items: center;
         cursor: pointer;
-        margin-bottom: 2px;
+        margin-bottom: 8px;
+        position: relative;
       }
 
       .menu-item span {
-        flex: 1;
-        text-align: left;
-        font-size: 13.5px;
+        display: none;
       }
 
       .menu-item small {
-        min-width: 25px;
-        height: 20px;
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        min-width: 18px;
+        height: 18px;
         border-radius: 99px;
-        background: #374151;
-        color: #9ca3af;
+        background: #344054;
+        color: #fff;
         display: grid;
         place-items: center;
         font-size: 10px;
       }
 
       .menu-item.active {
-        background: ${colors.blue};
-        color: #fff;
-      }
-
-      .menu-item.active small {
-        background: rgba(255,255,255,.2);
+        background: #2b303b;
         color: #fff;
       }
 
       .admin-card {
         border: 0;
         background: transparent;
-        border-top: 1px solid ${colors.sidebarLine};
-        padding: 14px 20px;
-        color: ${colors.sidebarText};
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        padding: 18px 0 26px;
+        color: #cbd5e1;
+        display: grid;
+        place-items: center;
         cursor: pointer;
-        text-align: left;
       }
 
       .admin-card div {
-        width: 30px;
-        height: 30px;
+        width: 44px;
+        height: 44px;
         border-radius: 99px;
         display: grid;
         place-items: center;
-        background: linear-gradient(135deg,#1D4ED8,#7C3AED);
-        color: #fff;
-        font-size: 11px;
-        font-weight: 700;
+        background: #344054;
+        color: #dce4f2;
+        font-size: 14px;
       }
 
-      .admin-card strong {
-        display: block;
-        color: #d1d5db;
-        font-size: 12.5px;
-      }
-
-      .admin-card small {
-        display: block;
-        color: ${colors.sidebarText};
-        font-size: 11px;
+      .admin-card span {
+        display: none;
       }
 
       .main {
@@ -752,13 +835,13 @@ function GlobalStyle() {
       }
 
       .topbar {
-        height: 64px;
+        height: 90px;
         background: ${colors.white};
         border-bottom: 1px solid ${colors.border};
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 28px;
+        padding: 0 36px;
         gap: 16px;
         position: sticky;
         top: 0;
@@ -767,27 +850,32 @@ function GlobalStyle() {
 
       .topbar h1 {
         margin: 0;
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 24px;
+        font-weight: 500;
+        color: #0f172a;
+      }
+
+      .topbar h1 span {
+        color: #9ca3af;
       }
 
       .topbar p {
-        margin: 2px 0 0;
-        font-size: 12px;
-        color: ${colors.muted};
+        margin: 3px 0 0;
+        font-size: 15px;
+        color: #8a93a5;
       }
 
       .top-actions {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
 
       .production {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        font-size: 12px;
+        font-size: 13px;
         color: ${colors.soft};
       }
 
@@ -800,17 +888,17 @@ function GlobalStyle() {
       }
 
       .btn {
-        height: 36px;
-        border-radius: 6px;
+        min-height: 44px;
+        border-radius: 9px;
         border: 1px solid ${colors.border};
         background: transparent;
         color: ${colors.soft};
-        padding: 0 14px;
+        padding: 0 16px;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 500;
       }
 
@@ -828,69 +916,109 @@ function GlobalStyle() {
         display: grid;
         grid-template-columns: repeat(4, minmax(180px, 1fr));
         gap: 16px;
-        padding: 28px 28px 0;
+        padding: 30px 36px 0;
       }
 
       .kpi {
-        min-height: 145px;
+        min-height: 210px;
         background: ${colors.white};
         border: 1px solid ${colors.border};
-        border-radius: 10px;
-        box-shadow: ${"0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)"};
-        padding: 20px 22px;
+        border-radius: 13px;
+        box-shadow: 0 2px 7px rgba(15,23,42,.08);
+        padding: 24px;
       }
 
       .kpi-top {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
       }
 
       .kpi-top span {
-        color: ${colors.muted};
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: .6px;
+        color: #8a93a5;
+        font-size: 16px;
+        line-height: 1.2;
       }
 
       .kpi-top i {
-        width: 30px;
-        height: 30px;
-        border-radius: 6px;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
         font-style: normal;
       }
 
-      .kpi.blue .kpi-top i { background: ${colors.blueLight}; color: ${colors.blue}; }
-      .kpi.green .kpi-top i { background: ${colors.greenLight}; color: ${colors.green}; }
-      .kpi.red .kpi-top i { background: ${colors.redLight}; color: ${colors.red}; }
-      .kpi.yellow .kpi-top i { background: ${colors.yellowLight}; color: ${colors.yellow}; }
+      .kpi.blue .kpi-top i { background: #edf4ff; color: ${colors.blue}; }
+      .kpi.green .kpi-top i { background: #e9fbf2; color: ${colors.green}; }
+      .kpi.red .kpi-top i { background: #fff0f0; color: ${colors.red}; }
+      .kpi.yellow .kpi-top i { background: #fff8e8; color: ${colors.yellow}; }
 
       .kpi strong {
         display: block;
-        margin-top: 22px;
-        font-size: 26px;
-        font-weight: 400;
+        margin-top: 14px;
+        font-size: 30px;
+        font-weight: 600;
+        color: #111827;
       }
 
-      .kpi em {
+      .kpi p {
+        margin: 8px 0 0;
+        color: #8a93a5;
+        font-size: 16px;
+      }
+
+      .fake-chart {
+        display: flex;
+        align-items: end;
+        gap: 5px;
+        height: 48px;
+        margin-top: 16px;
+      }
+
+      .fake-chart b {
+        width: 8px;
+        border-radius: 4px 4px 0 0;
         display: block;
-        width: 58%;
-        height: 10px;
-        border-radius: 99px;
-        background: #f3f4f6;
-        margin-top: 20px;
+      }
+
+      .kpi.blue .fake-chart b { background: #8cb8ff; }
+      .kpi.green .fake-chart b { background: #54d6ad; }
+      .kpi.yellow .fake-chart b { background: #ffc04d; }
+      .kpi.red .fake-chart b { background: #f87171; }
+
+      .dashboard-only {
+        margin: 24px 36px;
+        background: #fff;
+        border: 1px solid ${colors.border};
+        border-radius: 13px;
+        padding: 24px;
+        box-shadow: 0 2px 7px rgba(15,23,42,.08);
+      }
+
+      .dashboard-only h2 {
+        margin: 0 0 6px;
+        font-size: 20px;
+        font-weight: 500;
+      }
+
+      .dashboard-only p {
+        margin: 0 0 18px;
+        color: #8a93a5;
+      }
+
+      .dashboard-only div {
+        display: flex;
+        gap: 10px;
       }
 
       .generator {
-        margin: 28px 28px 0;
+        margin: 30px 36px 0;
         background: ${colors.white};
         border: 1px solid ${colors.border};
-        border-radius: 10px;
-        box-shadow: ${"0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)"};
-        padding: 16px 20px;
+        border-radius: 13px;
+        box-shadow: 0 2px 7px rgba(15,23,42,.08);
+        padding: 18px 22px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -899,13 +1027,14 @@ function GlobalStyle() {
 
       .generator h2 {
         margin: 0;
-        font-size: 16px;
+        font-size: 20px;
+        font-weight: 500;
       }
 
       .generator p {
         margin: 3px 0 0;
-        color: ${colors.muted};
-        font-size: 13px;
+        color: #8a93a5;
+        font-size: 14px;
       }
 
       .generator div:last-child {
@@ -916,23 +1045,23 @@ function GlobalStyle() {
 
       .generator input {
         width: 70px;
-        height: 36px;
+        height: 44px;
         border: 1px solid ${colors.border};
-        border-radius: 6px;
+        border-radius: 9px;
         text-align: center;
       }
 
       .table-card {
-        margin: 28px;
+        margin: 30px 36px;
         background: ${colors.white};
         border: 1px solid ${colors.border};
-        border-radius: 10px;
-        box-shadow: ${"0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)"};
+        border-radius: 13px;
+        box-shadow: 0 2px 7px rgba(15,23,42,.08);
         overflow: hidden;
       }
 
       .table-card.simple {
-        margin-top: 28px;
+        margin-top: 30px;
       }
 
       .table-title {
@@ -940,18 +1069,20 @@ function GlobalStyle() {
         align-items: flex-end;
         justify-content: space-between;
         gap: 16px;
-        padding: 20px;
+        padding: 22px 24px;
       }
 
       .table-title h2 {
         margin: 0;
-        font-size: 15px;
+        font-size: 20px;
+        font-weight: 500;
+        color: #111827;
       }
 
       .table-title p {
         margin: 3px 0 0;
-        color: ${colors.muted};
-        font-size: 12px;
+        color: #8a93a5;
+        font-size: 16px;
       }
 
       .chips {
@@ -963,34 +1094,34 @@ function GlobalStyle() {
       .chips span {
         border-radius: 99px;
         padding: 4px 10px;
-        font-size: 11.5px;
+        font-size: 12px;
         background: #f3f4f6;
         color: ${colors.soft};
       }
 
-      .chips .ok { background: ${colors.greenLight}; color: ${colors.green}; }
-      .chips .trial { background: ${colors.blueLight}; color: ${colors.blue}; }
-      .chips .bad { background: ${colors.redLight}; color: ${colors.red}; }
+      .chips .ok { background: #ecfdf5; color: ${colors.green}; }
+      .chips .trial { background: #eff6ff; color: ${colors.blue}; }
+      .chips .bad { background: #fef2f2; color: ${colors.red}; }
 
       .table-tools {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         align-items: center;
-        padding: 14px 20px;
+        padding: 14px 24px;
         border-top: 1px solid ${colors.border};
         border-bottom: 1px solid ${colors.border};
       }
 
       .table-tools label {
-        width: 320px;
+        width: 360px;
         max-width: 100%;
-        height: 38px;
+        height: 40px;
         border: 1px solid ${colors.border};
-        border-radius: 6px;
+        border-radius: 7px;
         background: ${colors.bg};
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 9px;
         padding: 0 12px;
         color: ${colors.muted};
       }
@@ -1005,15 +1136,15 @@ function GlobalStyle() {
       }
 
       .table-tools button {
-        height: 38px;
+        height: 40px;
         border: 1px solid ${colors.border};
-        border-radius: 6px;
+        border-radius: 7px;
         background: ${colors.white};
         color: ${colors.soft};
-        padding: 0 12px;
+        padding: 0 14px;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         cursor: pointer;
       }
 
@@ -1028,17 +1159,16 @@ function GlobalStyle() {
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 850px;
+        min-width: 860px;
       }
 
       th {
-        padding: 11px 16px;
+        padding: 13px 20px;
         text-align: left;
-        color: ${colors.muted};
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .7px;
-        text-transform: uppercase;
+        color: #8a93a5;
+        background: #f8f9fb;
+        font-size: 15px;
+        font-weight: 500;
         white-space: nowrap;
       }
 
@@ -1047,10 +1177,10 @@ function GlobalStyle() {
       }
 
       td {
-        padding: 13px 16px;
-        border-top: 1px solid #f3f4f6;
+        padding: 16px 20px;
+        border-top: 1px solid #eef1f5;
         color: ${colors.soft};
-        font-size: 13px;
+        font-size: 15px;
       }
 
       .code {
@@ -1062,18 +1192,18 @@ function GlobalStyle() {
       .client {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
       }
 
       .client > div {
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
         border-radius: 99px;
         display: grid;
         place-items: center;
-        background: ${colors.blue};
-        color: #fff;
-        font-size: 11px;
+        background: #edf4ff;
+        color: ${colors.blue};
+        font-size: 14px;
         font-weight: 700;
         flex-shrink: 0;
       }
@@ -1081,13 +1211,13 @@ function GlobalStyle() {
       .client strong {
         display: block;
         color: ${colors.text};
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .client small {
         display: block;
-        color: ${colors.muted};
-        font-size: 11.5px;
+        color: #8a93a5;
+        font-size: 13px;
       }
 
       .status {
@@ -1095,9 +1225,9 @@ function GlobalStyle() {
         align-items: center;
         gap: 5px;
         border-radius: 99px;
-        padding: 3px 9px;
-        font-size: 11.5px;
-        font-weight: 600;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 500;
       }
 
       .status i {
@@ -1106,39 +1236,44 @@ function GlobalStyle() {
         border-radius: 99px;
       }
 
-      .status.active { background: ${colors.greenLight}; color: ${colors.green}; }
+      .status.active { background: #ecfdf5; color: ${colors.green}; }
       .status.active i { background: ${colors.green}; }
-      .status.trial { background: ${colors.blueLight}; color: ${colors.blue}; }
-      .status.trial i { background: ${colors.blue}; }
-      .status.expired { background: ${colors.redLight}; color: ${colors.red}; }
-      .status.expired i { background: ${colors.red}; }
+      .status.available { background: #eff6ff; color: ${colors.blue}; }
+      .status.available i { background: ${colors.blue}; }
+      .status.expired, .status.blocked { background: #fef2f2; color: ${colors.red}; }
+      .status.expired i, .status.blocked i { background: ${colors.red}; }
 
       .actions {
         display: flex;
-        gap: 4px;
+        gap: 7px;
         justify-content: flex-end;
         flex-wrap: wrap;
       }
 
       .actions button {
-        border: 0;
-        border-radius: 6px;
-        padding: 5px 10px;
-        font-size: 12px;
+        border: 1px solid ${colors.border};
+        border-radius: 7px;
+        padding: 7px 11px;
+        font-size: 14px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 500;
         color: ${colors.soft};
-        background: #f3f4f6;
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
       }
 
       .actions .view {
-        background: ${colors.blueLight};
-        color: ${colors.blue};
+        background: ${colors.blue};
+        color: #fff;
+        border-color: ${colors.blue};
       }
 
       .actions .danger {
-        background: ${colors.redLight};
+        background: #fef2f2;
         color: ${colors.red};
+        border-color: #fee2e2;
       }
 
       .empty {
@@ -1154,7 +1289,7 @@ function GlobalStyle() {
         align-items: center;
         justify-content: space-between;
         color: ${colors.muted};
-        font-size: 12px;
+        font-size: 14px;
         padding: 0 20px;
       }
 
@@ -1164,8 +1299,8 @@ function GlobalStyle() {
       }
 
       .footer button {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-radius: 6px;
         border: 1px solid ${colors.border};
         background: ${colors.white};
@@ -1179,11 +1314,132 @@ function GlobalStyle() {
         color: #fff;
       }
 
+      .toast {
+        position: fixed;
+        right: 22px;
+        top: 22px;
+        z-index: 100;
+        background: #111827;
+        color: #fff;
+        padding: 13px 16px;
+        border-radius: 10px;
+        box-shadow: 0 18px 50px rgba(15,23,42,.22);
+        font-size: 14px;
+      }
+
+      .toast.erro {
+        background: ${colors.red};
+      }
+
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background: rgba(17,24,39,.45);
+        display: grid;
+        place-items: center;
+        padding: 22px;
+      }
+
+      .modal-card {
+        width: min(850px, 100%);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 24px 90px rgba(15,23,42,.24);
+        padding: 24px;
+      }
+
+      .small-modal {
+        width: min(520px, 100%);
+      }
+
+      .modal-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid ${colors.border};
+        padding-bottom: 16px;
+        margin-bottom: 18px;
+      }
+
+      .modal-top span {
+        display: block;
+        color: ${colors.blue};
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 1px;
+        font-weight: 700;
+      }
+
+      .modal-top h2 {
+        margin: 4px 0 0;
+        font-size: 22px;
+        font-weight: 500;
+      }
+
+      .modal-top button {
+        border: 1px solid ${colors.border};
+        background: #fff;
+        border-radius: 7px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      .details-grid div {
+        background: #f8f9fb;
+        border: 1px solid ${colors.border};
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .details-grid span {
+        display: block;
+        color: ${colors.muted};
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .details-grid strong {
+        display: block;
+        color: ${colors.text};
+        word-break: break-word;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .modal-label {
+        display: grid;
+        gap: 8px;
+        color: ${colors.soft};
+        font-size: 14px;
+      }
+
+      .modal-label textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        border: 1px solid ${colors.border};
+        border-radius: 9px;
+        padding: 12px;
+        outline: none;
+      }
+
       @media (max-width: 1100px) {
-        .sidebar { width: 210px; }
         .kpis { grid-template-columns: repeat(2, 1fr); }
         .topbar { align-items: flex-start; height: auto; padding: 18px; flex-direction: column; }
         .top-actions { width: 100%; flex-wrap: wrap; }
+        .details-grid { grid-template-columns: repeat(2, 1fr); }
       }
     `}</style>
   );
