@@ -5,14 +5,14 @@ const ADMIN_USER = "admin";
 const ADMIN_PASS = "1234";
 
 const STATUS = {
-  DISPONIVEL: "Disponível",
+  DISPONIVEL: "DisponÃ­vel",
   ATIVO: "Ativo",
   BLOQUEADO: "Bloqueado",
   VENCIDO: "Vencido",
 };
 
 function gerarCodigo() {
-  return String(Math.floor(10000 + Math.random() * 90000)); // 5 dígitos, sem hífen
+  return String(Math.floor(10000 + Math.random() * 90000)); // 5 dÃ­gitos, sem hÃ­fen
 }
 
 function formatarData(data) {
@@ -76,7 +76,7 @@ export default function AdminPanel() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao carregar dados do painel. Confira as colunas do Supabase e as variáveis da Vercel.");
+      alert("Erro ao carregar dados do painel. Confira as colunas do Supabase e as variÃ¡veis da Vercel.");
     } else {
       setUsuarios(data || []);
     }
@@ -90,7 +90,7 @@ export default function AdminPanel() {
       localStorage.setItem("painel_atestado_logado", "sim");
       setLogado(true);
     } else {
-      alert("Login inválido");
+      alert("Login invÃ¡lido");
     }
   }
 
@@ -115,7 +115,7 @@ export default function AdminPanel() {
         await carregarUsuarios();
         if (copiar) {
           await navigator.clipboard?.writeText(codigo).catch(() => {});
-          alert(`Código gerado e copiado: ${codigo}`);
+          alert(`CÃ³digo gerado e copiado: ${codigo}`);
         }
         return codigo;
       }
@@ -124,14 +124,14 @@ export default function AdminPanel() {
         codigo = gerarCodigo();
       } else {
         console.error(error);
-        alert("Erro ao gerar código.");
+        alert("Erro ao gerar cÃ³digo.");
         setGerando(false);
         return null;
       }
     }
 
     setGerando(false);
-    alert("Não foi possível gerar um código único. Tente novamente.");
+    alert("NÃ£o foi possÃ­vel gerar um cÃ³digo Ãºnico. Tente novamente.");
     return null;
   }
 
@@ -155,7 +155,7 @@ export default function AdminPanel() {
     }
 
     await carregarUsuarios();
-    alert(`${qtd} códigos gerados.`);
+    alert(`${qtd} cÃ³digos gerados.`);
   }
 
   async function alterarStatus(item, novoStatus) {
@@ -174,7 +174,7 @@ export default function AdminPanel() {
     }
 
     if (novoStatus === STATUS.DISPONIVEL) {
-      const ok = confirm("Liberar este código novamente? Isso apaga os dados do cliente vinculados a ele.");
+      const ok = confirm("Liberar este cÃ³digo novamente? Isso apaga os dados do cliente vinculados a ele.");
       if (!ok) return;
       Object.assign(updates, {
         nome: null,
@@ -231,20 +231,20 @@ export default function AdminPanel() {
     }
 
     await carregarUsuarios();
-    alert(`Acesso renovado até ${formatarData(novaValidade)}.`);
+    alert(`Acesso renovado atÃ© ${formatarData(novaValidade)}.`);
   }
 
   async function salvarObservacao(item) {
-    const obs = prompt("Observação do cliente:", item.observacoes || "");
+    const obs = prompt("ObservaÃ§Ã£o do cliente:", item.observacoes || "");
     if (obs === null) return;
     const { error } = await supabase.from("usuarios").update({ observacoes: obs }).eq("id", item.id);
-    if (error) alert("Erro ao salvar observação.");
+    if (error) alert("Erro ao salvar observaÃ§Ã£o.");
     await carregarUsuarios();
   }
 
   async function copiarCodigo(codigo) {
     await navigator.clipboard?.writeText(codigo).catch(() => {});
-    alert(`Código copiado: ${codigo}`);
+    alert(`CÃ³digo copiado: ${codigo}`);
   }
 
   const listaFiltrada = useMemo(() => {
@@ -286,9 +286,9 @@ export default function AdminPanel() {
       <div style={styles.loginPage}>
         <form style={styles.loginCard} onSubmit={entrar}>
           <div style={styles.logo}>AF</div>
-          <h1 style={styles.loginTitle}>Painel Atestado Fácil</h1>
+          <h1 style={styles.loginTitle}>Painel Atestado FÃ¡cil</h1>
           <p style={styles.loginText}>Gerencie acessos, pagamentos, vencimentos e erros.</p>
-          <input placeholder="Usuário" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={styles.input} />
+          <input placeholder="UsuÃ¡rio" value={usuario} onChange={(e) => setUsuario(e.target.value)} style={styles.input} />
           <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} style={styles.input} />
           <button type="submit" style={styles.primaryButton}>Entrar</button>
           <small style={styles.hint}>Login atual: admin / 1234</small>
@@ -304,15 +304,15 @@ export default function AdminPanel() {
           <div style={styles.brandBox}>
             <div style={styles.logoSmall}>AF</div>
             <div>
-              <strong>Atestado Fácil</strong>
+              <strong>Atestado FÃ¡cil</strong>
               <span style={styles.mutedBlock}>Painel ADM</span>
             </div>
           </div>
 
           {[
             ["dashboard", "Dashboard"],
-            ["codigos", "Códigos"],
-            ["usuarios", "Usuários"],
+            ["codigos", "CÃ³digos"],
+            ["usuarios", "UsuÃ¡rios"],
             ["pagamentos", "Pagamentos"],
             ["documentos", "Documentos"],
             ["erros", "Erros"],
@@ -328,9 +328,9 @@ export default function AdminPanel() {
       <main style={styles.main}>
         <header style={styles.header}>
           <div>
-            <span style={styles.eyebrow}>Administração</span>
+            <span style={styles.eyebrow}>AdministraÃ§Ã£o</span>
             <h1 style={styles.title}>{tituloAba(aba)}</h1>
-            <p style={styles.subtitle}>Sistema de controle do Atestado Fácil.</p>
+            <p style={styles.subtitle}>Sistema de controle do Atestado FÃ¡cil.</p>
           </div>
           <button style={styles.secondaryButton} onClick={carregarUsuarios}>{carregando ? "Atualizando..." : "Atualizar"}</button>
         </header>
@@ -349,20 +349,20 @@ export default function AdminPanel() {
 }
 
 function tituloAba(aba) {
-  const nomes = { dashboard: "Dashboard", codigos: "Códigos de acesso", usuarios: "Gerenciar usuários", pagamentos: "Pagamentos", documentos: "Documentos", erros: "Erros de envio" };
+  const nomes = { dashboard: "Dashboard", codigos: "CÃ³digos de acesso", usuarios: "Gerenciar usuÃ¡rios", pagamentos: "Pagamentos", documentos: "Documentos", erros: "Erros de envio" };
   return nomes[aba] || "Painel";
 }
 
 function Dashboard({ stats, setAba }) {
   const cards = [
     ["Clientes ativos", stats.ativo, "usuarios"],
-    ["Códigos livres", stats.disponivel, "codigos"],
+    ["CÃ³digos livres", stats.disponivel, "codigos"],
     ["Vencidos", stats.vencido, "pagamentos"],
     ["Bloqueados", stats.bloqueado, "usuarios"],
     ["Pendentes", stats.pendentePagamento, "pagamentos"],
     ["Erros", stats.erros, "erros"],
     ["Envios", stats.envios, "usuarios"],
-    ["Alterações", stats.alteracoes, "usuarios"],
+    ["AlteraÃ§Ãµes", stats.alteracoes, "usuarios"],
   ];
   return <section style={styles.statsGrid}>{cards.map(([label, value, aba]) => <button key={label} onClick={() => setAba(aba)} style={styles.statCard}><span style={styles.statNumber}>{value}</span><span style={styles.statLabel}>{label}</span></button>)}</section>;
 }
@@ -372,33 +372,33 @@ function Codigos({ gerando, gerarNovoCodigo, gerarLote, lote, setLote, lista, bu
     <>
       <section style={styles.panelCard}>
         <div>
-          <h2 style={styles.sectionTitle}>Gerar códigos</h2>
-          <p style={styles.sectionText}>Gere códigos simples de 5 dígitos. O cliente se cadastra pelo app.</p>
+          <h2 style={styles.sectionTitle}>Gerar cÃ³digos</h2>
+          <p style={styles.sectionText}>Gere cÃ³digos simples de 5 dÃ­gitos. O cliente se cadastra pelo app.</p>
         </div>
         <div style={styles.inlineActions}>
-          <button style={styles.primarySmall} onClick={() => gerarNovoCodigo(true)} disabled={gerando}>{gerando ? "Gerando..." : "Gerar código"}</button>
+          <button style={styles.primarySmall} onClick={() => gerarNovoCodigo(true)} disabled={gerando}>{gerando ? "Gerando..." : "Gerar cÃ³digo"}</button>
           <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} style={styles.smallInput} />
           <button style={styles.darkButton} onClick={gerarLote} disabled={gerando}>Gerar lote</button>
         </div>
       </section>
       <Toolbar busca={busca} setBusca={setBusca} filtro={filtro} setFiltro={setFiltro} />
       <section style={styles.cardList}>
-        {lista.length === 0 ? <Empty text="Nenhum código encontrado." /> : lista.map((item) => <CardCodigo key={item.id} item={item} copiarCodigo={copiarCodigo} alterarStatus={alterarStatus} />)}
+        {lista.length === 0 ? <Empty text="Nenhum cÃ³digo encontrado." /> : lista.map((item) => <CardCodigo key={item.id} item={item} copiarCodigo={copiarCodigo} alterarStatus={alterarStatus} />)}
       </section>
     </>
   );
 }
 
 function Toolbar({ busca, setBusca, filtro, setFiltro }) {
-  return <section style={styles.toolbar}><input placeholder="Buscar por código, nome, CPF, telefone ou e-mail..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /><select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={styles.select}><option>Todos</option><option>Disponível</option><option>Ativo</option><option>Bloqueado</option><option>Vencido</option></select></section>;
+  return <section style={styles.toolbar}><input placeholder="Buscar por cÃ³digo, nome, CPF, telefone ou e-mail..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /><select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={styles.select}><option>Todos</option><option>DisponÃ­vel</option><option>Ativo</option><option>Bloqueado</option><option>Vencido</option></select></section>;
 }
 
 function CardCodigo({ item, copiarCodigo, alterarStatus }) {
-  return <article style={styles.codeCard}><div style={styles.codeHeader}><div><span style={styles.codeLabel}>Código</span><h2 style={styles.code}>{item.codigo}</h2></div><span style={{ ...styles.badge, ...badgeStyle(item.status) }}>{item.status || STATUS.DISPONIVEL}</span></div><div style={styles.infoGrid}><Info label="Cliente" value={item.nome || "Ainda não vinculado"} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div><div style={styles.actions}><button style={styles.actionButton} onClick={() => copiarCodigo(item.codigo)}>Copiar</button>{item.status !== STATUS.BLOQUEADO ? <button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button> : <button style={styles.successButton} onClick={() => alterarStatus(item, STATUS.ATIVO)}>Ativar</button>}{item.status !== STATUS.DISPONIVEL && <button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar código</button>}</div></article>;
+  return <article style={styles.codeCard}><div style={styles.codeHeader}><div><span style={styles.codeLabel}>CÃ³digo</span><h2 style={styles.code}>{item.codigo}</h2></div><span style={{ ...styles.badge, ...badgeStyle(item.status) }}>{item.status || STATUS.DISPONIVEL}</span></div><div style={styles.infoGrid}><Info label="Cliente" value={item.nome || "Ainda nÃ£o vinculado"} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div><div style={styles.actions}><button style={styles.actionButton} onClick={() => copiarCodigo(item.codigo)}>Copiar</button>{item.status !== STATUS.BLOQUEADO ? <button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button> : <button style={styles.successButton} onClick={() => alterarStatus(item, STATUS.ATIVO)}>Ativar</button>}{item.status !== STATUS.DISPONIVEL && <button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar cÃ³digo</button>}</div></article>;
 }
 
 function Usuarios({ lista, busca, setBusca, setSelecionado, renovar, alterarStatus, salvarObservacao }) {
-  return <><section style={styles.toolbar}><input placeholder="Buscar cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /></section><section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum usuário cadastrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.email || "-"}</span></div><div><b>{u.codigo}</b><span>{u.cpf || "-"}</span></div><div><Badge status={u.status} /><span>Validade: {formatarData(u.validade)}</span></div><div style={styles.rowActions}><button style={styles.actionButton} onClick={() => setSelecionado(u)}>Detalhes</button><button style={styles.successButton} onClick={() => renovar(u)}>Renovar</button><button style={styles.neutralButton} onClick={() => salvarObservacao(u)}>Obs.</button><button style={styles.dangerButton} onClick={() => alterarStatus(u, STATUS.BLOQUEADO)}>Bloquear</button></div></div>)}</section></>;
+  return <><section style={styles.toolbar}><input placeholder="Buscar cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} style={styles.searchInput} /></section><section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum usuÃ¡rio cadastrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.email || "-"}</span></div><div><b>{u.codigo}</b><span>{u.cpf || "-"}</span></div><div><Badge status={u.status} /><span>Validade: {formatarData(u.validade)}</span></div><div style={styles.rowActions}><button style={styles.actionButton} onClick={() => setSelecionado(u)}>Detalhes</button><button style={styles.successButton} onClick={() => renovar(u)}>Renovar</button><button style={styles.neutralButton} onClick={() => salvarObservacao(u)}>Obs.</button><button style={styles.dangerButton} onClick={() => alterarStatus(u, STATUS.BLOQUEADO)}>Bloquear</button></div></div>)}</section></>;
 }
 
 function Pagamentos({ lista, renovar }) {
@@ -406,7 +406,7 @@ function Pagamentos({ lista, renovar }) {
 }
 
 function Documentos({ lista }) {
-  return <section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum documento registrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.codigo}</span></div><DocLink label="Termos" url={u.termos_pdf} /><DocLink label="Comprovante" url={u.comprovante_pdf} /><div><b>Alterações</b><span>{u.alteracoes || 0}</span></div></div>)}</section>;
+  return <section style={styles.tableCard}>{lista.length === 0 ? <Empty text="Nenhum documento registrado." /> : lista.map((u) => <div key={u.id} style={styles.row}><div><strong>{u.nome}</strong><span>{u.codigo}</span></div><DocLink label="Termos" url={u.termos_pdf} /><DocLink label="Comprovante" url={u.comprovante_pdf} /><div><b>AlteraÃ§Ãµes</b><span>{u.alteracoes || 0}</span></div></div>)}</section>;
 }
 
 function Erros({ lista }) {
@@ -414,11 +414,11 @@ function Erros({ lista }) {
 }
 
 function ModalCliente({ item, fechar, renovar, alterarStatus }) {
-  return <div style={styles.modalBg}><div style={styles.modal}><div style={styles.modalHeader}><div><span style={styles.eyebrow}>Cliente</span><h2 style={styles.modalTitle}>{item.nome || item.codigo}</h2></div><button style={styles.closeButton} onClick={fechar}>Fechar</button></div><div style={styles.infoGrid}><Info label="Código" value={item.codigo} /><Info label="Status" value={item.status} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Telefone" value={item.telefone || "-"} /><Info label="E-mail" value={item.email || "-"} /><Info label="Cargo" value={item.cargo || "-"} /><Info label="Órgão" value={item.orgao || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Envios" value={item.envios || 0} /><Info label="Alterações" value={item.alteracoes || 0} /><Info label="Pagamento" value={item.pagamento_status || "Pendente"} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div>{item.observacoes && <p style={styles.note}>{item.observacoes}</p>}<div style={styles.actions}><button style={styles.successButton} onClick={() => renovar(item)}>Renovar 90 dias</button><button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button><button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar código</button></div></div></div>;
+  return <div style={styles.modalBg}><div style={styles.modal}><div style={styles.modalHeader}><div><span style={styles.eyebrow}>Cliente</span><h2 style={styles.modalTitle}>{item.nome || item.codigo}</h2></div><button style={styles.closeButton} onClick={fechar}>Fechar</button></div><div style={styles.infoGrid}><Info label="CÃ³digo" value={item.codigo} /><Info label="Status" value={item.status} /><Info label="CPF" value={item.cpf || "-"} /><Info label="Telefone" value={item.telefone || "-"} /><Info label="E-mail" value={item.email || "-"} /><Info label="Cargo" value={item.cargo || "-"} /><Info label="Ã“rgÃ£o" value={item.orgao || "-"} /><Info label="Validade" value={formatarData(item.validade)} /><Info label="Envios" value={item.envios || 0} /><Info label="AlteraÃ§Ãµes" value={item.alteracoes || 0} /><Info label="Pagamento" value={item.pagamento_status || "Pendente"} /><Info label="Usado em" value={formatarDataHora(item.usado_em)} /></div>{item.observacoes && <p style={styles.note}>{item.observacoes}</p>}<div style={styles.actions}><button style={styles.successButton} onClick={() => renovar(item)}>Renovar 90 dias</button><button style={styles.dangerButton} onClick={() => alterarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button><button style={styles.neutralButton} onClick={() => alterarStatus(item, STATUS.DISPONIVEL)}>Liberar cÃ³digo</button></div></div></div>;
 }
 
 function DocLink({ label, url }) {
-  return <div><b>{label}</b><span>{url ? <a href={url} target="_blank" rel="noreferrer">Abrir arquivo</a> : "Não anexado"}</span></div>;
+  return <div><b>{label}</b><span>{url ? <a href={url} target="_blank" rel="noreferrer">Abrir arquivo</a> : "NÃ£o anexado"}</span></div>;
 }
 
 function Info({ label, value }) {
