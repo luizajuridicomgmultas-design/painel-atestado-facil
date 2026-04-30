@@ -1,8 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "1234";
+/* ─── TOKENS ─────────────────────────────────────────────── */
+const c = {
+  bg: "#F3F4F6", sidebar: "#111827", sidebarHover: "#1F2937",
+  sidebarActive: "#1D4ED8", sidebarText: "#9CA3AF",
+  white: "#FFFFFF", border: "#E5E7EB",
+  textPrimary: "#111827", textSecondary: "#6B7280", textMuted: "#9CA3AF",
+  blue: "#1D4ED8", blueLight: "#EFF6FF",
+  green: "#059669", greenLight: "#ECFDF5",
+  red: "#DC2626", redLight: "#FEF2F2",
+  yellow: "#D97706", yellowLight: "#FFFBEB",
+  shadow: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
+};
 
 const STATUS = {
   DISPONIVEL: "Disponível",
@@ -11,6 +21,37 @@ const STATUS = {
   VENCIDO: "Vencido",
 };
 
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "1234";
+
+/* ─── ICONS ───────────────────────────────────────────────── */
+const Icon = ({ d, size = 15, ...rest }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2"
+    viewBox="0 0 24 24" {...rest}>
+    <path d={d} />
+  </svg>
+);
+
+const Icons = {
+  grid: "M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z",
+  key: "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z",
+  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zm14 14v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  dollar: "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  bar: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+  plug: "M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14",
+  settings: "M12 15a3 3 0 100-6 3 3 0 000 6zm6.93-3a6.93 6.93 0 01-.06 1l1.52 1.19a.36.36 0 01.08.46l-1.44 2.5a.36.36 0 01-.44.16l-1.79-.72a7 7 0 01-.86.5l-.27 1.9a.35.35 0 01-.35.3h-2.88a.35.35 0 01-.35-.3l-.27-1.9a7 7 0 01-.86-.5l-1.79.72a.36.36 0 01-.44-.16l-1.44-2.5a.35.35 0 01.08-.46l1.52-1.19a6.93 6.93 0 010-2l-1.52-1.19a.36.36 0 01-.08-.46l1.44-2.5a.36.36 0 01.44-.16l1.79.72a7 7 0 01.86-.5l.27-1.9A.35.35 0 0110.56 3h2.88c.18 0 .33.13.35.3l.27 1.9a7 7 0 01.86.5l1.79-.72a.36.36 0 01.44.16l1.44 2.5a.35.35 0 01-.08.46z",
+  file: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6",
+  download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
+  plus: "M12 5v14M5 12h14",
+  search: "M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z",
+  filter: "M4 6h16M8 12h8M11 18h2",
+  trendDown: "M23 18L13.5 8.5 8.5 13.5 1 6M17 18h6v-6",
+  chat: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+  chevRight: "M9 18l6-6-6-6",
+  layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+};
+
+/* ─── HELPERS ─────────────────────────────────────────────── */
 function gerarCodigo() {
   return String(Math.floor(10000 + Math.random() * 90000));
 }
@@ -28,11 +69,7 @@ function validade90Dias() {
 function formatarData(data) {
   if (!data) return "—";
   try {
-    return new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
   } catch {
     return data || "—";
   }
@@ -49,46 +86,31 @@ function formatarDataHora(data) {
 
 function iniciais(nome) {
   if (!nome) return "—";
-  const partes = nome.trim().split(" ").filter(Boolean);
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
+  const p = nome.trim().split(" ").filter(Boolean);
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return `${p[0][0]}${p[p.length - 1][0]}`.toUpperCase();
 }
 
-const Icon = ({ type }) => {
-  const props = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
-  const icons = {
-    dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
-    key: <><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15 8 2 2" /><path d="m18 5 2 2" /></>,
-    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    billing: <><path d="M12 1v22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" /></>,
-    analytics: <><path d="M3 3v18h18" /><path d="M7 16v-5" /><path d="M12 16V8" /><path d="M17 16v-9" /></>,
-    settings: <><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.32.4.7.6 1.1.6H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" /></>,
-    logs: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></>,
-    export: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></>,
-    plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>,
-    filter: <><path d="M22 3H2l8 9.46V19l4 2v-8.54Z" /></>,
-    eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
-    edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
-    revoke: <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>,
-    copy: <><rect x="9" y="9" width="13" height="13" rx="2" /><rect x="2" y="2" width="13" height="13" rx="2" /></>,
-    renew: <><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></>,
-  };
-  return <svg {...props}>{icons[type] || icons.dashboard}</svg>;
-};
+function toStatus(row) {
+  if (row.status === STATUS.ATIVO) return { key: "active", label: "Ativa" };
+  if (row.status === STATUS.BLOQUEADO) return { key: "expired", label: "Bloqueada" };
+  if (row.status === STATUS.VENCIDO) return { key: "expired", label: "Expirada" };
+  return { key: "trial", label: "Livre" };
+}
 
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+═══════════════════════════════════════════════════════════ */
 export default function AdminPanel() {
   const [logado, setLogado] = useState(() => localStorage.getItem("painel_atestado_logado") === "sim");
-  const [usuario, setUsuario] = useState("");
+  const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
-  const [aba, setAba] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState("Dashboard");
+  const [search, setSearch] = useState("");
   const [usuarios, setUsuarios] = useState([]);
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState("Todos");
-  const [lote, setLote] = useState(5);
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
-  const [selecionado, setSelecionado] = useState(null);
+  const [lote, setLote] = useState(5);
 
   useEffect(() => {
     if (logado) carregar();
@@ -110,7 +132,7 @@ export default function AdminPanel() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao carregar dados.");
+      alert("Erro ao carregar dados do Supabase.");
     } else {
       setUsuarios(data || []);
     }
@@ -120,12 +142,11 @@ export default function AdminPanel() {
 
   function entrar(e) {
     e.preventDefault();
-
-    if (usuario === ADMIN_USER && senha === ADMIN_PASS) {
+    if (login === ADMIN_USER && senha === ADMIN_PASS) {
       localStorage.setItem("painel_atestado_logado", "sim");
       setLogado(true);
     } else {
-      alert("Login inválido");
+      alert("Login inválido.");
     }
   }
 
@@ -134,19 +155,13 @@ export default function AdminPanel() {
     setLogado(false);
   }
 
-  async function gerarCodigoUnico() {
+  async function gerarNovoCodigo() {
     setGerando(true);
 
     for (let i = 0; i < 12; i++) {
       const codigo = gerarCodigo();
-
       const { error } = await supabase.from("usuarios").insert([
-        {
-          codigo,
-          status: STATUS.DISPONIVEL,
-          sistema: "",
-          pagamento_status: "Pendente",
-        },
+        { codigo, status: STATUS.DISPONIVEL, sistema: "", pagamento_status: "Pendente" },
       ]);
 
       if (!error) {
@@ -166,7 +181,7 @@ export default function AdminPanel() {
     }
 
     setGerando(false);
-    alert("Não foi possível gerar um código único.");
+    alert("Não foi possível gerar código único.");
   }
 
   async function gerarLote() {
@@ -202,15 +217,15 @@ export default function AdminPanel() {
     alert(`Código copiado: ${codigo}`);
   }
 
-  async function atualizarStatus(item, status) {
+  async function atualizarStatus(row, status) {
     const update = { status };
 
     if (status === STATUS.BLOQUEADO) {
-      update.bloqueado_motivo = prompt("Motivo do bloqueio:", item.bloqueado_motivo || "") || "Bloqueio manual";
+      update.bloqueado_motivo = prompt("Motivo do bloqueio:", row.bloqueado_motivo || "") || "Bloqueio manual";
     }
 
     if (status === STATUS.ATIVO) {
-      update.validade = item.validade && item.validade >= hojeISO() ? item.validade : validade90Dias();
+      update.validade = row.validade && row.validade >= hojeISO() ? row.validade : validade90Dias();
       update.pagamento_status = "Pago";
       update.pago_em = new Date().toISOString();
       update.renovado_em = new Date().toISOString();
@@ -218,48 +233,29 @@ export default function AdminPanel() {
     }
 
     if (status === STATUS.DISPONIVEL) {
-      const ok = confirm("Liberar esta licença? Os dados do cliente serão removidos.");
+      const ok = confirm("Liberar esta licença? Isso apaga os dados do cliente vinculado.");
       if (!ok) return;
-
       Object.assign(update, {
-        nome: null,
-        cpf: null,
-        telefone: null,
-        email: null,
-        cargo: null,
-        orgao: null,
-        mat1: null,
-        mat2: null,
-        unid1: null,
-        unid2: null,
-        sit: null,
-        validade: null,
-        usado_em: null,
-        bloqueado_motivo: null,
-        envios: 0,
-        alteracoes: 0,
-        pagamento_status: "Pendente",
-        pago_em: null,
-        renovado_em: null,
-        vencido_em: null,
+        nome: null, cpf: null, telefone: null, email: null, cargo: null, orgao: null,
+        mat1: null, mat2: null, unid1: null, unid2: null, sit: null,
+        validade: null, usado_em: null, bloqueado_motivo: null,
+        envios: 0, alteracoes: 0, pagamento_status: "Pendente",
+        pago_em: null, renovado_em: null, vencido_em: null,
       });
     }
 
-    const { error } = await supabase.from("usuarios").update(update).eq("id", item.id);
-
+    const { error } = await supabase.from("usuarios").update(update).eq("id", row.id);
     if (error) {
       console.error(error);
-      alert("Erro ao atualizar.");
+      alert("Erro ao atualizar licença.");
       return;
     }
 
-    setSelecionado(null);
     await carregar();
   }
 
-  async function renovar(item) {
+  async function renovar(row) {
     const novaValidade = validade90Dias();
-
     const { error } = await supabase
       .from("usuarios")
       .update({
@@ -270,7 +266,7 @@ export default function AdminPanel() {
         renovado_em: new Date().toISOString(),
         bloqueado_motivo: null,
       })
-      .eq("id", item.id);
+      .eq("id", row.id);
 
     if (error) {
       console.error(error);
@@ -278,559 +274,385 @@ export default function AdminPanel() {
       return;
     }
 
-    setSelecionado(null);
     await carregar();
     alert(`Licença renovada até ${formatarData(novaValidade)}.`);
   }
 
-  async function salvarObs(item) {
-    const observacoes = prompt("Observação:", item.observacoes || "");
-    if (observacoes === null) return;
-
-    const { error } = await supabase.from("usuarios").update({ observacoes }).eq("id", item.id);
-
-    if (error) {
-      console.error(error);
-      alert("Erro ao salvar observação.");
-      return;
-    }
-
-    await carregar();
-  }
-
-  const filtrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    return usuarios.filter((u) => {
-      const texto = `${u.codigo || ""} ${u.nome || ""} ${u.cpf || ""} ${u.telefone || ""} ${u.email || ""}`.toLowerCase();
-      const buscaOk = !termo || texto.includes(termo);
-      const filtroOk = filtro === "Todos" || u.status === filtro;
-      return buscaOk && filtroOk;
-    });
-  }, [usuarios, busca, filtro]);
-
-  const clientes = useMemo(() => filtrados.filter((u) => u.nome), [filtrados]);
-
   const stats = useMemo(() => {
-    const s = {
-      total: usuarios.length,
-      disponivel: 0,
-      ativo: 0,
-      bloqueado: 0,
-      vencido: 0,
-      pendente: 0,
-      erro: 0,
-      envios: 0,
-    };
+    const ativo = usuarios.filter((u) => u.status === STATUS.ATIVO).length;
+    const disponivel = usuarios.filter((u) => u.status === STATUS.DISPONIVEL).length;
+    const vencido = usuarios.filter((u) => u.status === STATUS.VENCIDO).length;
+    const bloqueado = usuarios.filter((u) => u.status === STATUS.BLOQUEADO).length;
+    const pendente = usuarios.filter((u) => (u.pagamento_status || "Pendente") !== "Pago").length;
+    const erros = usuarios.filter((u) => u.ultimo_erro).length;
+    const envios = usuarios.reduce((sum, u) => sum + Number(u.envios || 0), 0);
 
-    usuarios.forEach((u) => {
-      if (u.status === STATUS.DISPONIVEL) s.disponivel++;
-      if (u.status === STATUS.ATIVO) s.ativo++;
-      if (u.status === STATUS.BLOQUEADO) s.bloqueado++;
-      if (u.status === STATUS.VENCIDO) s.vencido++;
-      if ((u.pagamento_status || "Pendente") !== "Pago") s.pendente++;
-      if (u.ultimo_erro) s.erro++;
-      s.envios += Number(u.envios || 0);
-    });
-
-    return s;
+    return { total: usuarios.length, ativo, disponivel, vencido, bloqueado, pendente, erros, envios };
   }, [usuarios]);
+
+  const navMain = [
+    { label: "Dashboard", icon: "grid", badge: null },
+    { label: "Licenças", icon: "key", badge: String(stats.total) },
+    { label: "Clientes", icon: "users", badge: String(usuarios.filter((u) => u.nome).length) },
+    { label: "Faturamento", icon: "dollar" },
+  ];
+  const navSystem = [
+    { label: "Documentos", icon: "file" },
+    { label: "Erros", icon: "file", badge: String(stats.erros) },
+    { label: "Atualizar", icon: "settings" },
+  ];
+
+  const filtered = usuarios.filter((r) => {
+    const haystack = `${r.codigo || ""} ${r.nome || ""} ${r.email || ""} ${r.telefone || ""} ${r.cpf || ""}`.toLowerCase();
+    const match = haystack.includes(search.toLowerCase());
+
+    if (activeNav === "Clientes") return match && r.nome;
+    if (activeNav === "Faturamento") return match && r.nome;
+    if (activeNav === "Documentos") return match && r.nome;
+    if (activeNav === "Erros") return match && r.ultimo_erro;
+
+    return match;
+  });
 
   if (!logado) {
     return (
-      <>
-        <Style />
-        <div className="login-page">
-          <form className="login-card" onSubmit={entrar}>
-            <div className="app-mark">AF</div>
-            <h1>Atestado Fácil</h1>
-            <p>Painel administrativo</p>
-            <input placeholder="Usuário" value={usuario} onChange={(e) => setUsuario(e.target.value)} />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
-            <button type="submit">Entrar</button>
-          </form>
-        </div>
-      </>
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: c.bg, fontFamily: "'Inter', sans-serif" }}>
+        <form onSubmit={entrar} style={{ width: 360, background: c.white, border: `1px solid ${c.border}`, borderRadius: 12, boxShadow: c.shadow, padding: 28 }}>
+          <div style={{ width: 38, height: 38, background: c.blue, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+            <Icon d={Icons.layers} size={17} stroke="#fff" />
+          </div>
+          <h1 style={{ margin: 0, fontSize: 21 }}>Atestado Fácil</h1>
+          <p style={{ margin: "4px 0 22px", color: c.textMuted }}>Painel administrativo</p>
+          <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Usuário" style={loginInput} />
+          <input value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Senha" type="password" style={loginInput} />
+          <button style={{ width: "100%", height: 42, border: 0, borderRadius: 7, background: c.blue, color: "#fff", fontWeight: 600, cursor: "pointer" }}>Entrar</button>
+        </form>
+      </div>
     );
   }
 
-  const listaPrincipal = aba === "usuarios" ? clientes : filtrados;
-
   return (
-    <>
-      <Style />
-      <div className="layout">
-        <aside className="sidebar">
-          <div>
-            <div className="brand">
-              <div className="app-mark">AF</div>
-              <div>
-                <strong>Atestado Fácil</strong>
-                <span>v1.0.0</span>
-              </div>
-            </div>
-
-            <NavGroup title="Principal">
-              <NavItem active={aba === "dashboard"} onClick={() => setAba("dashboard")} icon="dashboard" label="Dashboard" />
-              <NavItem active={aba === "codigos"} onClick={() => setAba("codigos")} icon="key" label="Licenças" badge={stats.total} />
-              <NavItem active={aba === "usuarios"} onClick={() => setAba("usuarios")} icon="users" label="Clientes" badge={clientes.length} />
-              <NavItem active={aba === "pagamentos"} onClick={() => setAba("pagamentos")} icon="billing" label="Faturamento" />
-            </NavGroup>
-
-            <NavGroup title="Sistema">
-              <NavItem active={aba === "documentos"} onClick={() => setAba("documentos")} icon="logs" label="Documentos" />
-              <NavItem active={aba === "erros"} onClick={() => setAba("erros")} icon="logs" label="Logs" badge={stats.erro} />
-              <NavItem active={false} onClick={carregar} icon="settings" label={carregando ? "Atualizando" : "Configurações"} />
-            </NavGroup>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: c.bg, fontSize: 14 }}>
+      <aside style={{
+        width: 220, background: c.sidebar, height: "100vh",
+        position: "fixed", top: 0, left: 0, display: "flex",
+        flexDirection: "column", zIndex: 100,
+      }}>
+        <div style={{ height: 64, display: "flex", alignItems: "center", padding: "0 20px", borderBottom: `1px solid #1F2937`, gap: 10, flexShrink: 0 }}>
+          <div style={{ width: 30, height: 30, background: c.blue, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon d={Icons.layers} size={15} stroke="#fff" />
           </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", letterSpacing: "-0.3px" }}>Atestado Fácil</div>
+            <div style={{ fontSize: 10, color: c.sidebarText, textTransform: "uppercase", letterSpacing: "0.5px" }}>Painel ADM</div>
+          </div>
+        </div>
 
-          <button className="user-card" onClick={sair}>
-            <div>AD</div>
-            <span>
-              <strong>Admin</strong>
-              <small>Sair do painel</small>
-            </span>
-          </button>
-        </aside>
+        <nav style={{ flex: 1, padding: "14px 0", overflowY: "auto" }}>
+          <NavSection label="Principal" items={navMain} active={activeNav} onSelect={(label) => label === "Atualizar" ? carregar() : setActiveNav(label)} />
+          <NavSection label="Sistema" items={navSystem} active={activeNav} onSelect={(label) => label === "Atualizar" ? carregar() : setActiveNav(label)} />
+        </nav>
 
-        <main className="main">
-          <header className="topbar">
-            <div>
-              <h1>{tituloAba(aba)} <span>·</span> Visão Geral</h1>
-              <p>{new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })} — atualizado agora</p>
+        <div style={{ padding: 12, borderTop: `1px solid #1F2937` }}>
+          <div onClick={sair} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 6, cursor: "pointer" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 99, background: "linear-gradient(135deg,#1D4ED8,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>AD</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 500, color: "#D1D5DB" }}>Admin</div>
+              <div style={{ fontSize: 11, color: c.sidebarText }}>Sair</div>
             </div>
+            <Icon d={Icons.chevRight} size={14} stroke="#6B7280" />
+          </div>
+        </div>
+      </aside>
 
-            <div className="top-actions">
-              <span className="prod"><i></i> Produção</span>
-              <button className="outline"><Icon type="export" /> Exportar</button>
-              <button className="primary" onClick={gerarCodigoUnico} disabled={gerando}><Icon type="plus" /> Nova Licença</button>
+      <div style={{ marginLeft: 220, flex: 1, display: "flex", flexDirection: "column" }}>
+        <header style={{ height: 64, background: c.white, borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", padding: "0 28px", gap: 16, position: "sticky", top: 0, zIndex: 50 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: c.textPrimary, letterSpacing: "-0.3px" }}>{activeNav} · Visão Geral</div>
+            <div style={{ fontSize: 12, color: c.textMuted, marginTop: 1 }}>{new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })} — {carregando ? "atualizando..." : "atualizado"}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 99, background: "#10B981", boxShadow: "0 0 0 2px #D1FAE5" }} />
+            <span style={{ fontSize: 12, color: c.textSecondary }}>Produção</span>
+            <div style={{ width: 1, height: 24, background: c.border }} />
+            <Btn ghost icon={Icons.download}>Exportar</Btn>
+            <Btn icon={Icons.plus} onClick={gerarNovoCodigo}>{gerando ? "Gerando..." : "Nova Licença"}</Btn>
+          </div>
+        </header>
+
+        <main style={{ padding: 28, display: "flex", flexDirection: "column", gap: 24, flex: 1 }}>
+          {(activeNav === "Dashboard" || activeNav === "Licenças") && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+              <KpiCard label="Licenças Ativas" value={stats.ativo} icon="key" color="blue" />
+              <KpiCard label="Códigos Livres" value={stats.disponivel} icon="dollar" color="green" />
+              <KpiCard label="Bloqueadas/Vencidas" value={stats.bloqueado + stats.vencido} icon="trendDown" color="red" />
+              <KpiCard label="Erros Abertos" value={stats.erros} icon="chat" color="yellow" />
             </div>
-          </header>
-
-          {(aba === "dashboard" || aba === "codigos") && (
-            <section className="metrics">
-              <Metric label="Licenças ativas" value={stats.ativo} icon="key" tint="blue" />
-              <Metric label="Códigos livres" value={stats.disponivel} icon="billing" tint="green" />
-              <Metric label="Pendentes" value={stats.pendente} icon="analytics" tint="red" />
-              <Metric label="Erros abertos" value={stats.erro} icon="logs" tint="yellow" />
-            </section>
           )}
 
-          {aba === "codigos" && (
-            <section className="generator">
-              <div>
-                <h2>Gerar licenças</h2>
-                <p>Licenças com 5 dígitos, liberadas para cadastro no app.</p>
-              </div>
-              <div>
-                <button className="primary" onClick={gerarCodigoUnico} disabled={gerando}><Icon type="plus" /> Gerar 1</button>
-                <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} />
-                <button className="outline" onClick={gerarLote} disabled={gerando}>Gerar lote</button>
-              </div>
-            </section>
+          {activeNav === "Licenças" && (
+            <div style={{ background: c.white, borderRadius: 10, border: `1px solid ${c.border}`, boxShadow: c.shadow, padding: 16, display: "flex", gap: 10, alignItems: "center" }}>
+              <button onClick={gerarNovoCodigo} style={blueButton}>Gerar 1 código</button>
+              <input value={lote} type="number" min="1" max="100" onChange={(e) => setLote(e.target.value)} style={{ width: 70, padding: "7px 10px", border: `1px solid ${c.border}`, borderRadius: 6 }} />
+              <button onClick={gerarLote} style={ghostButton}>Gerar lote</button>
+            </div>
           )}
 
-          {aba === "dashboard" || aba === "codigos" || aba === "usuarios" ? (
-            <Licencas
-              titulo={aba === "usuarios" ? "Clientes — Todas as Contas" : "Licenças — Todas as Contas"}
-              subtitulo={aba === "usuarios" ? "Gerencie clientes já vinculados" : "Gerencie, filtre e exporte registros de licença"}
-              lista={listaPrincipal}
-              busca={busca}
-              setBusca={setBusca}
-              filtro={filtro}
-              setFiltro={setFiltro}
+          {activeNav === "Faturamento" ? (
+            <SimpleTable title="Faturamento" rows={filtered} kind="payments" renovar={renovar} />
+          ) : activeNav === "Documentos" ? (
+            <SimpleTable title="Documentos" rows={filtered} kind="documents" />
+          ) : activeNav === "Erros" ? (
+            <SimpleTable title="Erros" rows={filtered} kind="errors" />
+          ) : (
+            <LicenseTable
+              title={activeNav === "Clientes" ? "Clientes — Todas as Contas" : "Licenças — Todas as Contas"}
+              subtitle={activeNav === "Clientes" ? "Clientes vinculados aos códigos do app" : "Gerencie, filtre e exporte registros de licença"}
+              filtered={filtered}
+              stats={stats}
+              search={search}
+              setSearch={setSearch}
               copiarCodigo={copiarCodigo}
-              abrir={setSelecionado}
               renovar={renovar}
               atualizarStatus={atualizarStatus}
-              stats={stats}
             />
-          ) : null}
-
-          {aba === "pagamentos" && <Pagamentos lista={usuarios.filter((u) => u.nome)} renovar={renovar} />}
-          {aba === "documentos" && <Documentos lista={usuarios.filter((u) => u.nome)} />}
-          {aba === "erros" && <Erros lista={usuarios.filter((u) => u.ultimo_erro)} />}
-
-          {selecionado && (
-            <Modal item={selecionado} fechar={() => setSelecionado(null)} renovar={renovar} atualizarStatus={atualizarStatus} salvarObs={salvarObs} />
           )}
         </main>
       </div>
-    </>
-  );
-}
-
-function tituloAba(aba) {
-  return {
-    dashboard: "Dashboard",
-    codigos: "Licenças",
-    usuarios: "Clientes",
-    pagamentos: "Faturamento",
-    documentos: "Documentos",
-    erros: "Logs",
-  }[aba] || "Dashboard";
-}
-
-function NavGroup({ title, children }) {
-  return (
-    <div className="nav-group">
-      <p>{title}</p>
-      {children}
     </div>
   );
 }
 
-function NavItem({ active, onClick, icon, label, badge }) {
+/* ─── SUB-COMPONENTS ─────────────────────────────────────── */
+function NavSection({ label, items, active, onSelect }) {
   return (
-    <button className={active ? "nav-item active" : "nav-item"} onClick={onClick}>
-      <Icon type={icon} />
-      <span>{label}</span>
-      {badge !== undefined ? <small>{badge}</small> : null}
+    <div style={{ padding: "0 12px", marginBottom: 4 }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1px", color: "#374151", padding: "10px 8px 6px", fontWeight: 600 }}>{label}</div>
+      {items.map((item) => {
+        const isActive = active === item.label;
+        return (
+          <div key={item.label} onClick={() => onSelect(item.label)}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6, color: isActive ? "#fff" : "#9CA3AF", cursor: "pointer", background: isActive ? "#1D4ED8" : "transparent", fontWeight: isActive ? 500 : 400, fontSize: 13.5, transition: "all 0.15s", marginBottom: 1 }}>
+            <Icon d={Icons[item.icon]} size={15} stroke="currentColor" style={{ opacity: isActive ? 1 : 0.8 }} />
+            {item.label}
+            {item.badge && (
+              <span style={{ marginLeft: "auto", background: isActive ? "rgba(255,255,255,0.2)" : "#374151", color: isActive ? "#fff" : "#9CA3AF", fontSize: 10, padding: "1px 6px", borderRadius: 99, fontWeight: 500 }}>{item.badge}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function KpiCard({ label, icon, color, value }) {
+  const kpiColors = {
+    blue: { bg: "#EFF6FF", color: "#1D4ED8" },
+    green: { bg: "#ECFDF5", color: "#059669" },
+    red: { bg: "#FEF2F2", color: "#DC2626" },
+    yellow: { bg: "#FFFBEB", color: "#D97706" },
+  };
+  const { bg, color: iconColor } = kpiColors[color];
+  return (
+    <div style={{ background: "#fff", borderRadius: 10, border: `1px solid #E5E7EB`, boxShadow: "0 1px 3px rgba(0,0,0,0.07)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.6px" }}>{label}</span>
+        <div style={{ width: 30, height: 30, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: bg, color: iconColor }}>
+          <Icon d={Icons[icon]} size={15} stroke={iconColor} />
+        </div>
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 500, color: "#111827", letterSpacing: "-0.8px" }}>{value}</div>
+      <div style={{ height: 10, borderRadius: 99, background: "#F3F4F6", width: "60%" }} />
+    </div>
+  );
+}
+
+function LicenseTable({ title, subtitle, filtered, stats, search, setSearch, copiarCodigo, renovar, atualizarStatus }) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 14.5, fontWeight: 600 }}>{title}</div>
+          <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{subtitle}</div>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[["Total: " + stats.total, "#F3F4F6", "#6B7280", c.border], ["Ativas: " + stats.ativo, "#ECFDF5", "#059669", "transparent"], ["Livres: " + stats.disponivel, "#EFF6FF", "#1D4ED8", "transparent"], ["Expiradas: " + stats.vencido, "#FEF2F2", "#DC2626", "transparent"]].map(([label, bg, color, border]) => (
+            <span key={label} style={{ padding: "4px 10px", borderRadius: 99, fontSize: 11.5, fontWeight: 500, background: bg, color, border: `1px solid ${border}` }}>{label}</span>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background: c.white, borderRadius: 10, border: `1px solid ${c.border}`, boxShadow: c.shadow, overflow: "hidden" }}>
+        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 6, padding: "7px 12px", maxWidth: 280, flex: 1 }}>
+            <Icon d={Icons.search} size={13} stroke={c.textMuted} />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por código ou cliente…"
+              style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: c.textPrimary, fontFamily: "inherit", width: "100%" }} />
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <Btn ghost icon={Icons.filter}>Filtrar</Btn>
+            <Btn ghost icon={Icons.download}>Exportar</Btn>
+          </div>
+        </div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${c.border}` }}>
+              {["Código", "Cliente", "Status", "Validade", "Ações"].map((col, i) => (
+                <th key={col} style={{ padding: "11px 16px", textAlign: i === 4 ? "right" : "left", fontSize: 11, fontWeight: 600, color: c.textMuted, textTransform: "uppercase", letterSpacing: "0.7px", whiteSpace: "nowrap" }}>{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((row, i) => (
+              <TableRow key={row.id} row={row} last={i === filtered.length - 1} copiarCodigo={copiarCodigo} renovar={renovar} atualizarStatus={atualizarStatus} />
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: "32px 16px", textAlign: "center", color: c.textMuted, fontSize: 13 }}>Nenhum resultado encontrado.</td></tr>
+            )}
+          </tbody>
+        </table>
+
+        <div style={{ padding: "12px 20px", borderTop: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: c.textMuted }}>Mostrando {filtered.length} de {stats.total} registros</span>
+          <div style={{ display: "flex", gap: 4 }}>
+            {["‹", "1", "2", "3", "…", "›"].map((p, i) => (
+              <div key={i} style={{ width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, cursor: "pointer", border: `1px solid ${p === "1" ? c.blue : c.border}`, background: p === "1" ? c.blue : c.white, color: p === "1" ? "#fff" : c.textSecondary }}>
+                {p}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TableRow({ row, last, copiarCodigo, renovar, atualizarStatus }) {
+  const status = toStatus(row);
+  const statusStyle = {
+    active: { bg: "#ECFDF5", color: "#059669", dot: "#059669" },
+    trial: { bg: "#EFF6FF", color: "#1D4ED8", dot: "#1D4ED8" },
+    expired: { bg: "#FEF2F2", color: "#DC2626", dot: "#DC2626" },
+    pending: { bg: "#FFFBEB", color: "#D97706", dot: "#D97706" },
+  };
+  const s = statusStyle[status.key];
+  const name = row.nome || "Aguardando dados";
+  return (
+    <tr style={{ borderBottom: last ? "none" : `1px solid #F9FAFB` }}>
+      <td style={{ padding: "13px 16px" }}>
+        <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "#1D4ED8", fontWeight: 500 }}>{row.codigo}</span>
+      </td>
+      <td style={{ padding: "13px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 99, background: row.nome ? "#1D4ED8" : "#CBD5E1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: "#fff", flexShrink: 0 }}>{iniciais(row.nome)}</div>
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 13.5 }}>{name}</div>
+            <div style={{ fontSize: 11.5, color: "#9CA3AF", marginTop: 1 }}>{row.email || row.telefone || "Cliente ainda não vinculado"}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: "13px 16px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, fontSize: 11.5, fontWeight: 500, background: s.bg, color: s.color }}>
+          <span style={{ width: 6, height: 6, borderRadius: 99, background: s.dot, display: "inline-block" }} />
+          {status.label}
+        </span>
+      </td>
+      <td style={{ padding: "13px 16px", fontSize: 13, color: "#6B7280" }}>{formatarData(row.validade)}</td>
+      <td style={{ padding: "13px 16px", textAlign: "right" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+          <ActBtn bg="#EFF6FF" color="#1D4ED8" hoverBg="#DBEAFE" onClick={() => alert(detalhes(row))}>Ver</ActBtn>
+          <ActBtn bg="#F3F4F6" color="#6B7280" hoverBg="#EEF0F2" border={`1px solid #E5E7EB`} onClick={() => copiarCodigo(row.codigo)}>Copiar</ActBtn>
+          {(row.status === STATUS.ATIVO || row.status === STATUS.VENCIDO) && <ActBtn bg="#F3F4F6" color="#6B7280" hoverBg="#EEF0F2" border={`1px solid #E5E7EB`} onClick={() => renovar(row)}>Renovar</ActBtn>}
+          {row.status === STATUS.BLOQUEADO ? (
+            <ActBtn bg="#ECFDF5" color="#059669" hoverBg="#D1FAE5" onClick={() => atualizarStatus(row, STATUS.ATIVO)}>Liberar</ActBtn>
+          ) : (
+            <ActBtn bg="#FEF2F2" color="#DC2626" hoverBg="#FEE2E2" onClick={() => atualizarStatus(row, STATUS.BLOQUEADO)}>Revogar</ActBtn>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function detalhes(row) {
+  return [
+    `Código: ${row.codigo}`,
+    `Nome: ${row.nome || "-"}`,
+    `CPF: ${row.cpf || "-"}`,
+    `Telefone: ${row.telefone || "-"}`,
+    `E-mail: ${row.email || "-"}`,
+    `Status: ${row.status || "-"}`,
+    `Validade: ${formatarData(row.validade)}`,
+  ].join("\n");
+}
+
+function SimpleTable({ title, rows, kind, renovar }) {
+  return (
+    <div style={{ background: c.white, borderRadius: 10, border: `1px solid ${c.border}`, boxShadow: c.shadow, overflow: "hidden" }}>
+      <div style={{ padding: "18px 20px", borderBottom: `1px solid ${c.border}` }}>
+        <strong>{title}</strong>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ padding: 32, color: c.textMuted, textAlign: "center" }}>Nenhum registro encontrado.</div>
+      ) : rows.map((r) => (
+        <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 1fr 140px", gap: 12, padding: "14px 20px", borderBottom: `1px solid #F9FAFB`, alignItems: "center" }}>
+          <span>{r.nome || r.codigo}</span>
+          <span style={{ fontFamily: "monospace", color: c.blue }}>{r.codigo}</span>
+          <span>{kind === "errors" ? r.ultimo_erro : kind === "documents" ? (r.termos_pdf || "Sem termos PDF") : (r.pagamento_status || "Pendente")}</span>
+          {kind === "payments" ? <ActBtn bg="#EFF6FF" color="#1D4ED8" onClick={() => renovar(r)}>Renovar</ActBtn> : <span>{formatarData(r.validade)}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Btn({ children, ghost, icon, onClick }) {
+  return (
+    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer", border: ghost ? `1px solid #E5E7EB` : "none", background: ghost ? "transparent" : "#1D4ED8", color: ghost ? "#6B7280" : "#fff", fontFamily: "inherit", transition: "all 0.15s" }}>
+      {icon && <Icon d={icon} size={13} stroke="currentColor" />}
+      {children}
     </button>
   );
 }
 
-function Metric({ label, value, icon, tint }) {
+function ActBtn({ children, bg, color, hoverBg, border, onClick }) {
   return (
-    <article className={`metric ${tint}`}>
-      <div>
-        <span>{label}</span>
-        <b>{value || "—"}</b>
-        <em></em>
-      </div>
-      <i><Icon type={icon} /></i>
-    </article>
+    <button onClick={onClick} style={{ padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 500, border: border || "none", cursor: "pointer", background: bg, color, fontFamily: "inherit", transition: "all 0.15s" }}
+      onMouseEnter={e => hoverBg && (e.currentTarget.style.background = hoverBg)}
+      onMouseLeave={e => (e.currentTarget.style.background = bg)}>
+      {children}
+    </button>
   );
 }
 
-function Licencas({ titulo, subtitulo, lista, busca, setBusca, filtro, setFiltro, copiarCodigo, abrir, renovar, atualizarStatus, stats }) {
-  return (
-    <section className="table-card">
-      <div className="table-title">
-        <div>
-          <h2>{titulo}</h2>
-          <p>{subtitulo}</p>
-        </div>
-        <div className="chips">
-          <span>Total: {stats.total}</span>
-          <span className="ok">Ativas: {stats.ativo}</span>
-          <span className="trial">Livres: {stats.disponivel}</span>
-          <span className="bad">Expiradas: {stats.vencido}</span>
-        </div>
-      </div>
+const loginInput = {
+  width: "100%",
+  height: 42,
+  border: `1px solid ${c.border}`,
+  borderRadius: 7,
+  padding: "0 12px",
+  marginBottom: 10,
+  outline: "none",
+};
 
-      <div className="table-tools">
-        <label>
-          <Icon type="search" />
-          <input placeholder="Buscar por código ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </label>
+const blueButton = {
+  padding: "7px 14px",
+  borderRadius: 6,
+  border: 0,
+  background: c.blue,
+  color: "#fff",
+  fontWeight: 600,
+  cursor: "pointer",
+};
 
-        <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-          <option>Todos</option>
-          <option>Disponível</option>
-          <option>Ativo</option>
-          <option>Bloqueado</option>
-          <option>Vencido</option>
-        </select>
-
-        <button><Icon type="filter" /> Filtrar</button>
-        <button><Icon type="export" /> Exportar</button>
-      </div>
-
-      <div className="table">
-        <div className="thead">
-          <span>Código</span>
-          <span>Cliente</span>
-          <span>Status</span>
-          <span>Validade</span>
-          <span>Ações</span>
-        </div>
-
-        {lista.length === 0 ? (
-          <div className="empty">Nenhum registro encontrado.</div>
-        ) : (
-          lista.map((item, index) => (
-            <div className="trow" key={item.id}>
-              <span className="code">{item.codigo || "—"}</span>
-
-              <span className="client-cell">
-                <i className={`avatar-color color-${index % 5}`}>{iniciais(item.nome)}</i>
-                <span>
-                  <strong>{item.nome || "Aguardando dados"}</strong>
-                  <small>{item.email || item.telefone || "Cliente ainda não vinculado"}</small>
-                </span>
-              </span>
-
-              <Badge status={item.status} />
-              <span>{formatarData(item.validade)}</span>
-
-              <span className="actions">
-                <button className="view" onClick={() => abrir(item)}><Icon type="eye" /> Ver</button>
-                <button onClick={() => abrir(item)}><Icon type="edit" /> Editar</button>
-                <button onClick={() => copiarCodigo(item.codigo)}><Icon type="copy" /> Copiar</button>
-                {item.status === STATUS.ATIVO || item.status === STATUS.VENCIDO ? (
-                  <button onClick={() => renovar(item)}><Icon type="renew" /> Renovar</button>
-                ) : null}
-                {item.status === STATUS.BLOQUEADO ? (
-                  <button onClick={() => atualizarStatus(item, STATUS.ATIVO)}>Liberar</button>
-                ) : (
-                  <button className="revoke" onClick={() => atualizarStatus(item, STATUS.BLOQUEADO)}><Icon type="revoke" /> Revogar</button>
-                )}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="table-footer">
-        <span>Mostrando {lista.length} de {stats.total} registros</span>
-        <div>
-          <button>‹</button>
-          <button className="active">1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>…</button>
-          <button>›</button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Pagamentos({ lista, renovar }) {
-  return (
-    <section className="table-card simple">
-      <div className="table-title"><div><h2>Faturamento</h2><p>Pagamentos, renovações e validade de acesso</p></div></div>
-      <div className="table pay">
-        <div className="thead"><span>Cliente</span><span>Código</span><span>Status pagamento</span><span>Pago em</span><span>Validade</span><span>Ação</span></div>
-        {lista.length === 0 ? <div className="empty">Nenhum pagamento encontrado.</div> : lista.map((item) => (
-          <div className="trow" key={item.id}>
-            <span>{item.nome}</span><span className="code">{item.codigo}</span><span>{item.pagamento_status || "Pendente"}</span><span>{formatarDataHora(item.pago_em)}</span><span>{formatarData(item.validade)}</span>
-            <button className="view" onClick={() => renovar(item)}>Renovar</button>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Documentos({ lista }) {
-  return (
-    <section className="table-card simple">
-      <div className="table-title"><div><h2>Documentos</h2><p>Termos de responsabilidade, comprovantes e anexos</p></div></div>
-      <div className="table docs">
-        <div className="thead"><span>Cliente</span><span>Código</span><span>Termos</span><span>Comprovante</span><span>Alterações</span></div>
-        {lista.length === 0 ? <div className="empty">Nenhum documento encontrado.</div> : lista.map((item) => (
-          <div className="trow" key={item.id}>
-            <span>{item.nome}</span><span className="code">{item.codigo}</span>
-            <span>{item.termos_pdf ? <a href={item.termos_pdf} target="_blank" rel="noreferrer">Abrir</a> : "Não anexado"}</span>
-            <span>{item.comprovante_pdf ? <a href={item.comprovante_pdf} target="_blank" rel="noreferrer">Abrir</a> : "Não anexado"}</span>
-            <span>{item.alteracoes || 0}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Erros({ lista }) {
-  return (
-    <section className="table-card simple">
-      <div className="table-title"><div><h2>Logs</h2><p>Falhas de envio registradas pelo aplicativo</p></div></div>
-      <div className="table logs">
-        <div className="thead"><span>Cliente/código</span><span>Data</span><span>Erro</span></div>
-        {lista.length === 0 ? <div className="empty">Nenhum erro registrado.</div> : lista.map((item) => (
-          <div className="trow" key={item.id}><span>{item.nome || item.codigo}</span><span>{formatarDataHora(item.ultimo_erro_em)}</span><span>{item.ultimo_erro}</span></div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Modal({ item, fechar, renovar, atualizarStatus, salvarObs }) {
-  return (
-    <div className="modal-bg">
-      <div className="modal">
-        <div className="modal-top">
-          <div>
-            <span>Licença</span>
-            <h2>{item.nome || item.codigo}</h2>
-          </div>
-          <button onClick={fechar}>Fechar</button>
-        </div>
-
-        <div className="details">
-          <Detail label="Código" value={item.codigo} />
-          <Detail label="Status" value={item.status} />
-          <Detail label="CPF" value={item.cpf || "—"} />
-          <Detail label="Telefone" value={item.telefone || "—"} />
-          <Detail label="E-mail" value={item.email || "—"} />
-          <Detail label="Cargo" value={item.cargo || "—"} />
-          <Detail label="Órgão" value={item.orgao || "—"} />
-          <Detail label="Validade" value={formatarData(item.validade)} />
-          <Detail label="Envios" value={item.envios || 0} />
-          <Detail label="Alterações" value={item.alteracoes || 0} />
-          <Detail label="Pagamento" value={item.pagamento_status || "Pendente"} />
-          <Detail label="Usado em" value={formatarDataHora(item.usado_em)} />
-        </div>
-
-        {item.observacoes && <div className="note">{item.observacoes}</div>}
-
-        <div className="modal-actions">
-          <button className="primary" onClick={() => renovar(item)}>Renovar 90 dias</button>
-          <button onClick={() => salvarObs(item)}>Observação</button>
-          <button onClick={() => atualizarStatus(item, STATUS.BLOQUEADO)}>Bloquear</button>
-          <button onClick={() => atualizarStatus(item, STATUS.DISPONIVEL)}>Liberar licença</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Detail({ label, value }) {
-  return <div className="detail"><span>{label}</span><b>{value}</b></div>;
-}
-
-function Badge({ status }) {
-  const cls = status === STATUS.ATIVO ? "active" : status === STATUS.BLOQUEADO ? "blocked" : status === STATUS.VENCIDO ? "expired" : "trial";
-  const text = status === STATUS.DISPONIVEL ? "Livre" : status || STATUS.DISPONIVEL;
-  return <span className={`badge ${cls}`}><i></i>{text}</span>;
-}
-
-function Style() {
-  return (
-    <style>{`
-      * { box-sizing: border-box; }
-      body { margin: 0; background: #f3f4f8; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      button, input, select { font: inherit; }
-
-      .login-page { min-height: 100vh; display: grid; place-items: center; background: #f3f4f8; }
-      .login-card { width: 370px; padding: 30px; border-radius: 18px; border: 1px solid #e5e7eb; background: #fff; box-shadow: 0 22px 70px rgba(15,23,42,.12); }
-      .login-card h1 { margin: 22px 0 4px; font-size: 24px; }
-      .login-card p { margin: 0 0 24px; color: #667085; }
-      .login-card input { width: 100%; height: 44px; border: 1px solid #d7dce5; border-radius: 9px; padding: 0 12px; margin-bottom: 10px; outline: none; }
-      .login-card button { width: 100%; height: 44px; border: 0; border-radius: 9px; background: #2558d8; color: #fff; font-weight: 700; cursor: pointer; }
-
-      .layout { width: 100vw; min-height: 100vh; display: flex; background: #f3f4f8; }
-      .sidebar { width: 280px; min-height: 100vh; background: #111827; color: #d6deeb; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #202b3b; }
-      .brand { height: 68px; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid #202b3b; }
-      .app-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; background: linear-gradient(135deg, #2f6df6, #1744c4); color: #fff; font-weight: 800; }
-      .brand strong { display: block; color: #fff; font-size: 16px; line-height: 1; }
-      .brand span { display: block; margin-top: 3px; font-size: 12px; color: #8ea0b8; }
-      .nav-group { padding: 24px 14px 4px; }
-      .nav-group p { margin: 0 0 9px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #56657a; }
-      .nav-item { width: 100%; height: 44px; border: 0; background: transparent; color: #bec8d8; border-radius: 7px; display: flex; align-items: center; gap: 13px; padding: 0 12px; cursor: pointer; margin-bottom: 5px; }
-      .nav-item span { flex: 1; text-align: left; font-size: 15px; font-weight: 500; }
-      .nav-item small { min-width: 30px; height: 22px; display: grid; place-items: center; border-radius: 999px; background: #334155; color: #cbd5e1; font-size: 12px; font-weight: 700; }
-      .nav-item.active { background: #2558d8; color: #fff; }
-      .nav-item.active small { background: rgba(255,255,255,.18); color: #fff; }
-      .user-card { margin: 18px; padding: 14px 12px; border: 0; border-top: 1px solid #202b3b; background: transparent; color: #d6deeb; display: flex; align-items: center; gap: 12px; cursor: pointer; }
-      .user-card div { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #6847e8; color: #fff; font-weight: 800; }
-      .user-card span { display: block; text-align: left; }
-      .user-card strong { display: block; color: #fff; font-size: 14px; }
-      .user-card small { color: #9aa8bd; }
-
-      .main { flex: 1; min-width: 0; }
-      .topbar { height: 68px; background: #fff; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; padding: 0 36px; }
-      .topbar h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.2px; }
-      .topbar h1 span { margin: 0 8px; color: #94a3b8; }
-      .topbar p { margin: 2px 0 0; color: #94a3b8; font-size: 14px; }
-      .top-actions { display: flex; align-items: center; gap: 12px; }
-      .prod { display: inline-flex; align-items: center; gap: 8px; color: #667085; font-size: 14px; }
-      .prod i { width: 10px; height: 10px; border-radius: 50%; background: #12b76a; box-shadow: 0 0 0 3px #dcfae6; }
-      .outline, .primary { height: 40px; display: inline-flex; align-items: center; gap: 8px; border-radius: 7px; padding: 0 16px; cursor: pointer; font-weight: 600; }
-      .outline { background: #fff; border: 1px solid #dde3ec; color: #4b5565; }
-      .primary { border: 1px solid #2558d8; background: #2558d8; color: #fff; box-shadow: 0 2px 6px rgba(37,88,216,.2); }
-
-      .metrics { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 20px; padding: 36px 36px 24px; }
-      .metric { min-height: 154px; border: 1px solid #dde3ec; border-radius: 12px; background: #fff; padding: 26px; display: flex; justify-content: space-between; box-shadow: 0 2px 6px rgba(15,23,42,.08); }
-      .metric span { display: block; color: #8992a3; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 24px; }
-      .metric b { display: block; font-size: 28px; font-weight: 700; color: #111827; }
-      .metric em { display: block; width: 170px; height: 12px; border-radius: 999px; background: #f1f2f6; margin-top: 20px; }
-      .metric i { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-style: normal; }
-      .metric.blue i { background: #edf4ff; color: #2558d8; }
-      .metric.green i { background: #e9fbf2; color: #039855; }
-      .metric.red i { background: #fff0f0; color: #f04438; }
-      .metric.yellow i { background: #fff8e8; color: #f79009; }
-
-      .generator { margin: 0 36px 20px; border: 1px solid #dde3ec; border-radius: 12px; background: #fff; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
-      .generator h2 { margin: 0 0 4px; font-size: 18px; }
-      .generator p { margin: 0; color: #8992a3; }
-      .generator div:last-child { display: flex; gap: 10px; align-items: center; }
-      .generator input { width: 72px; height: 40px; border: 1px solid #dde3ec; border-radius: 7px; text-align: center; }
-
-      .table-card { margin: 0 36px 36px; border: 1px solid #dde3ec; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 2px 6px rgba(15,23,42,.08); }
-      .table-card.simple { margin-top: 36px; }
-      .table-title { display: flex; align-items: flex-end; justify-content: space-between; padding: 26px 24px 14px; }
-      .table-title h2 { margin: 0; font-size: 18px; font-weight: 800; }
-      .table-title p { margin: 2px 0 0; color: #98a2b3; font-size: 14px; }
-      .chips { display: flex; gap: 10px; flex-wrap: wrap; }
-      .chips span { min-height: 28px; padding: 5px 13px; border-radius: 999px; background: #f8fafc; color: #475467; font-size: 13px; }
-      .chips .ok { background: #ecfdf3; color: #027a48; }
-      .chips .trial { background: #eff4ff; color: #1d4ed8; }
-      .chips .bad { background: #fef3f2; color: #d92d20; }
-
-      .table-tools { min-height: 76px; padding: 16px 24px; border-top: 1px solid #eef1f5; display: flex; align-items: center; gap: 12px; }
-      .table-tools label { width: 360px; height: 40px; display: flex; align-items: center; gap: 10px; background: #f8f9fb; border: 1px solid #dde3ec; border-radius: 7px; padding: 0 13px; color: #98a2b3; }
-      .table-tools input { flex: 1; border: 0; outline: none; background: transparent; color: #111827; }
-      .table-tools select, .table-tools button { height: 40px; border: 1px solid #dde3ec; background: #fff; color: #4b5565; border-radius: 7px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
-      .table-tools select { margin-left: auto; }
-
-      .table { width: 100%; }
-      .thead, .trow { display: grid; grid-template-columns: 160px 1.5fr 240px 180px 300px; align-items: center; }
-      .table.pay .thead, .table.pay .trow { grid-template-columns: 1.2fr 150px 180px 180px 160px 180px; }
-      .table.docs .thead, .table.docs .trow { grid-template-columns: 1.4fr 150px 170px 170px 160px; }
-      .table.logs .thead, .table.logs .trow { grid-template-columns: 240px 200px 1fr; }
-      .thead { background: #fbfcfe; border-top: 1px solid #eef1f5; border-bottom: 1px solid #eef1f5; color: #98a2b3; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; }
-      .thead span, .trow > span, .trow > button { padding: 14px 20px; }
-      .trow { min-height: 66px; border-bottom: 1px solid #f0f2f5; color: #556070; font-size: 14px; }
-      .trow:last-child { border-bottom: 0; }
-      .code { color: #1d4ed8; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 700; letter-spacing: .6px; }
-
-      .client-cell { display: flex; align-items: center; gap: 12px; }
-      .client-cell i { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; font-style: normal; color: #fff; font-weight: 800; font-size: 13px; }
-      .client-cell strong { display: block; color: #111827; font-weight: 700; }
-      .client-cell small { color: #98a2b3; }
-      .color-0 { background: #2558d8; } .color-1 { background: #7047eb; } .color-2 { background: #e07b00; } .color-3 { background: #009a6e; } .color-4 { background: #e92929; }
-
-      .badge { width: fit-content; min-height: 26px; padding: 4px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
-      .badge i { width: 7px; height: 7px; border-radius: 50%; }
-      .badge.active { background: #ecfdf3; color: #027a48; } .badge.active i { background: #12b76a; }
-      .badge.trial { background: #eff4ff; color: #1d4ed8; } .badge.trial i { background: #2e6bff; }
-      .badge.blocked { background: #fef3f2; color: #d92d20; } .badge.blocked i { background: #f04438; }
-      .badge.expired { background: #fff7ed; color: #c2410c; } .badge.expired i { background: #f79009; }
-
-      .actions { display: flex; gap: 8px; flex-wrap: wrap; padding-right: 14px; }
-      .actions button, .modal-actions button, .modal-top button { min-height: 34px; border: 1px solid #dde3ec; background: #f8fafc; color: #475467; border-radius: 7px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; cursor: pointer; }
-      .actions .view { background: #eff4ff; color: #1d4ed8; border-color: #eff4ff; }
-      .actions .revoke { background: #fef3f2; color: #d92d20; border-color: #fef3f2; }
-      .blue-btn { min-height: 34px; border: 0; border-radius: 7px; background: #2558d8; color: #fff; padding: 0 12px; cursor: pointer; font-weight: 700; }
-
-      .table-footer { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-top: 1px solid #eef1f5; color: #98a2b3; font-size: 14px; }
-      .table-footer div { display: flex; gap: 6px; }
-      .table-footer button { width: 34px; height: 34px; border: 1px solid #dde3ec; border-radius: 7px; background: #fff; color: #475467; cursor: pointer; }
-      .table-footer button.active { background: #2558d8; color: #fff; border-color: #2558d8; }
-
-      .empty { padding: 34px; color: #98a2b3; text-align: center; }
-      a { color: #2558d8; font-weight: 700; text-decoration: none; }
-
-      .modal-bg { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,23,42,.45); z-index: 50; padding: 24px; }
-      .modal { width: min(940px, 100%); background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 24px 90px rgba(15,23,42,.25); }
-      .modal-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #eef1f5; padding-bottom: 16px; margin-bottom: 18px; }
-      .modal-top span { color: #2558d8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
-      .modal-top h2 { margin: 4px 0 0; font-size: 24px; }
-      .details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-      .detail { background: #f8fafc; border: 1px solid #eef1f5; border-radius: 10px; padding: 13px; }
-      .detail span { display: block; color: #98a2b3; font-size: 12px; margin-bottom: 4px; }
-      .detail b { display: block; color: #111827; word-break: break-word; }
-      .note { margin-top: 14px; background: #eff4ff; color: #1d4ed8; border-radius: 10px; padding: 13px; }
-      .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-
-      @media (max-width: 1250px) {
-        .metrics { grid-template-columns: repeat(2, 1fr); }
-        .table-card { overflow-x: auto; }
-        .table { min-width: 1180px; }
-      }
-    `}</style>
-  );
-}
+const ghostButton = {
+  padding: "7px 14px",
+  borderRadius: 6,
+  border: `1px solid ${c.border}`,
+  background: "#fff",
+  color: c.textSecondary,
+  fontWeight: 600,
+  cursor: "pointer",
+};
