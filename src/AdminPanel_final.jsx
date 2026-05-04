@@ -71,36 +71,127 @@ function iniciais(nome) {
 
 function statusView(status) {
   if (status === STATUS.ATIVO) return { label: "Ativo", cls: "active" };
-  if (status === STATUS.BLOQUEADO) return { label: "Bloqueado", cls: "blocked" };
+  if (status === STATUS.BLOQUEADO)
+    return { label: "Bloqueado", cls: "blocked" };
   if (status === STATUS.VENCIDO) return { label: "Vencido", cls: "expired" };
   return { label: "Disponível", cls: "available" };
 }
 
 const Icon = ({ children, size = 18 }) => (
-  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     {children}
   </svg>
 );
 
 const I = {
-  dashboard: <Icon><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></Icon>,
-  key: <Icon><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15 8 2 2" /><path d="m18 5 2 2" /></Icon>,
-  users: <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></Icon>,
-  card: <Icon><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></Icon>,
-  file: <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></Icon>,
-  settings: <Icon><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.32.4.7.6 1.1.6H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" /></Icon>,
-  download: <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></Icon>,
-  plus: <Icon><path d="M12 5v14" /><path d="M5 12h14" /></Icon>,
-  search: <Icon size={16}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>,
-  filter: <Icon size={16}><path d="M4 6h16" /><path d="M8 12h8" /><path d="M11 18h2" /></Icon>,
-  edit: <Icon size={16}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></Icon>,
-  copy: <Icon size={16}><rect x="9" y="9" width="13" height="13" rx="2" /><rect x="2" y="2" width="13" height="13" rx="2" /></Icon>,
-  renew: <Icon size={16}><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></Icon>,
-  lock: <Icon size={16}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></Icon>,
+  dashboard: (
+    <Icon>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </Icon>
+  ),
+  key: (
+    <Icon>
+      <circle cx="7.5" cy="15.5" r="5.5" />
+      <path d="m21 2-9.6 9.6" />
+      <path d="m15 8 2 2" />
+      <path d="m18 5 2 2" />
+    </Icon>
+  ),
+  users: (
+    <Icon>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    </Icon>
+  ),
+  card: (
+    <Icon>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </Icon>
+  ),
+  file: (
+    <Icon>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 2v6h6" />
+    </Icon>
+  ),
+  settings: (
+    <Icon>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.32.4.7.6 1.1.6H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
+    </Icon>
+  ),
+  download: (
+    <Icon>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </Icon>
+  ),
+  plus: (
+    <Icon>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </Icon>
+  ),
+  search: (
+    <Icon size={16}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </Icon>
+  ),
+  filter: (
+    <Icon size={16}>
+      <path d="M4 6h16" />
+      <path d="M8 12h8" />
+      <path d="M11 18h2" />
+    </Icon>
+  ),
+  edit: (
+    <Icon size={16}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </Icon>
+  ),
+  copy: (
+    <Icon size={16}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <rect x="2" y="2" width="13" height="13" rx="2" />
+    </Icon>
+  ),
+  renew: (
+    <Icon size={16}>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+    </Icon>
+  ),
+  lock: (
+    <Icon size={16}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </Icon>
+  ),
 };
 
 export default function AdminPanel() {
-  const [logado, setLogado] = useState(() => localStorage.getItem("painel_atestado_logado") === "sim");
+  const [logado, setLogado] = useState(
+    () => localStorage.getItem("painel_atestado_logado") === "sim",
+  );
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [aba, setAba] = useState("Dashboard");
@@ -166,9 +257,16 @@ export default function AdminPanel() {
 
     for (let i = 0; i < 12; i++) {
       const codigo = gerarCodigo();
-      const { error } = await supabase.from("usuarios").insert([
-        { codigo, status: STATUS.DISPONIVEL, sistema: "", pagamento_status: "Pendente" },
-      ]);
+      const { error } = await supabase
+        .from("usuarios")
+        .insert([
+          {
+            codigo,
+            status: STATUS.DISPONIVEL,
+            sistema: "",
+            pagamento_status: "Pendente",
+          },
+        ]);
 
       if (!error) {
         await carregar();
@@ -178,7 +276,11 @@ export default function AdminPanel() {
         return;
       }
 
-      if (!String(error.message || "").toLowerCase().includes("duplicate")) {
+      if (
+        !String(error.message || "")
+          .toLowerCase()
+          .includes("duplicate")
+      ) {
         console.error(error);
         setGerando(false);
         aviso("Erro ao gerar código.", "erro");
@@ -225,7 +327,10 @@ export default function AdminPanel() {
   async function bloquear(row, motivo) {
     const { error } = await supabase
       .from("usuarios")
-      .update({ status: STATUS.BLOQUEADO, bloqueado_motivo: motivo || "Bloqueio manual" })
+      .update({
+        status: STATUS.BLOQUEADO,
+        bloqueado_motivo: motivo || "Bloqueio manual",
+      })
       .eq("id", row.id);
 
     if (error) {
@@ -266,17 +371,31 @@ export default function AdminPanel() {
     const ativo = usuarios.filter((u) => u.status === STATUS.ATIVO).length;
     const livre = usuarios.filter((u) => u.status === STATUS.DISPONIVEL).length;
     const vencido = usuarios.filter((u) => u.status === STATUS.VENCIDO).length;
-    const bloqueado = usuarios.filter((u) => u.status === STATUS.BLOQUEADO).length;
+    const bloqueado = usuarios.filter(
+      (u) => u.status === STATUS.BLOQUEADO,
+    ).length;
     const clientes = usuarios.filter((u) => u.nome).length;
     const erros = usuarios.filter((u) => u.ultimo_erro).length;
-    const pendente = usuarios.filter((u) => (u.pagamento_status || "Pendente") !== "Pago").length;
-    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, pendente };
+    const pendente = usuarios.filter(
+      (u) => (u.pagamento_status || "Pendente") !== "Pago",
+    ).length;
+    return {
+      total: usuarios.length,
+      ativo,
+      livre,
+      vencido,
+      bloqueado,
+      clientes,
+      erros,
+      pendente,
+    };
   }, [usuarios]);
 
   const lista = useMemo(() => {
     const termo = busca.toLowerCase().trim();
     return usuarios.filter((u) => {
-      const texto = `${u.codigo || ""} ${u.nome || ""} ${u.email || ""} ${u.telefone || ""} ${u.cpf || ""}`.toLowerCase();
+      const texto =
+        `${u.codigo || ""} ${u.nome || ""} ${u.email || ""} ${u.telefone || ""} ${u.cpf || ""}`.toLowerCase();
       const match = !termo || texto.includes(termo);
 
       if (aba === "Clientes") return match && u.nome;
@@ -296,8 +415,17 @@ export default function AdminPanel() {
             <div className="brand-icon">AF</div>
             <h1>Atestado Fácil</h1>
             <p>Painel administrativo</p>
-            <input placeholder="Usuário" value={login} onChange={(e) => setLogin(e.target.value)} />
-            <input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+            <input
+              placeholder="Usuário"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+            />
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
             <button type="submit">Entrar</button>
           </form>
           {toast && <Toast toast={toast} />}
@@ -321,15 +449,52 @@ export default function AdminPanel() {
 
           <nav>
             <MenuTitle>Principal</MenuTitle>
-            <MenuItem active={aba === "Dashboard"} onClick={() => setAba("Dashboard")} icon={I.dashboard} label="Dashboard" />
-            <MenuItem active={aba === "Licenças"} onClick={() => setAba("Licenças")} icon={I.key} label="Licenças" badge={stats.total} />
-            <MenuItem active={aba === "Clientes"} onClick={() => setAba("Clientes")} icon={I.users} label="Clientes" badge={stats.clientes} />
-            <MenuItem active={aba === "Faturamento"} onClick={() => setAba("Faturamento")} icon={I.card} label="Faturamento" />
+            <MenuItem
+              active={aba === "Dashboard"}
+              onClick={() => setAba("Dashboard")}
+              icon={I.dashboard}
+              label="Dashboard"
+            />
+            <MenuItem
+              active={aba === "Licenças"}
+              onClick={() => setAba("Licenças")}
+              icon={I.key}
+              label="Licenças"
+              badge={stats.total}
+            />
+            <MenuItem
+              active={aba === "Clientes"}
+              onClick={() => setAba("Clientes")}
+              icon={I.users}
+              label="Clientes"
+              badge={stats.clientes}
+            />
+            <MenuItem
+              active={aba === "Faturamento"}
+              onClick={() => setAba("Faturamento")}
+              icon={I.card}
+              label="Faturamento"
+            />
 
             <MenuTitle>Sistema</MenuTitle>
-            <MenuItem active={aba === "Documentos"} onClick={() => setAba("Documentos")} icon={I.file} label="Documentos" />
-            <MenuItem active={aba === "Erros"} onClick={() => setAba("Erros")} icon={I.file} label="Erros" badge={stats.erros} />
-            <MenuItem onClick={carregar} icon={I.settings} label={carregando ? "Atualizando..." : "Atualizar"} />
+            <MenuItem
+              active={aba === "Documentos"}
+              onClick={() => setAba("Documentos")}
+              icon={I.file}
+              label="Documentos"
+            />
+            <MenuItem
+              active={aba === "Erros"}
+              onClick={() => setAba("Erros")}
+              icon={I.file}
+              label="Erros"
+              badge={stats.erros}
+            />
+            <MenuItem
+              onClick={carregar}
+              icon={I.settings}
+              label={carregando ? "Atualizando..." : "Atualizar"}
+            />
           </nav>
 
           <button className="admin-card" onClick={sair}>
@@ -344,32 +509,78 @@ export default function AdminPanel() {
         <main className="main">
           <header className="topbar">
             <div>
-              <h1>{aba} <span>·</span> Visão Geral</h1>
-              <p>{new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })} — {carregando ? "atualizando" : "atualizado"}</p>
+              <h1>
+                {aba} <span>·</span> Visão Geral
+              </h1>
+              <p>
+                {new Date().toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                })}{" "}
+                — {carregando ? "atualizando" : "atualizado"}
+              </p>
             </div>
 
             <div className="top-actions">
-              <span className="production"><i /> Produção</span>
+              <span className="production">
+                <i /> Produção
+              </span>
               <button className="btn ghost">{I.download} Exportar</button>
-              <button className="btn primary" onClick={gerarNovoCodigo}>{I.plus} {gerando ? "Gerando..." : "Novo código"}</button>
+              <button className="btn primary" onClick={gerarNovoCodigo}>
+                {I.plus} {gerando ? "Gerando..." : "Novo código"}
+              </button>
             </div>
           </header>
 
           {aba === "Dashboard" && (
             <>
               <section className="kpis">
-                <Kpi label="Total de códigos" value={stats.total} small={`${stats.livre} disponíveis`} icon={I.key} color="blue" />
-                <Kpi label="Ativos" value={stats.ativo} small="em uso" icon={I.users} color="green" />
-                <Kpi label="Pendentes de pagamento" value={stats.pendente} small="aguardando" icon={I.card} color="yellow" />
-                <Kpi label="Bloqueados / Vencidos" value={stats.bloqueado + stats.vencido} small="requer atenção" icon={I.lock} color="red" />
+                <Kpi
+                  label="Total de códigos"
+                  value={stats.total}
+                  small={`${stats.livre} disponíveis`}
+                  icon={I.key}
+                  color="blue"
+                />
+                <Kpi
+                  label="Ativos"
+                  value={stats.ativo}
+                  small="em uso"
+                  icon={I.users}
+                  color="green"
+                />
+                <Kpi
+                  label="Pendentes de pagamento"
+                  value={stats.pendente}
+                  small="aguardando"
+                  icon={I.card}
+                  color="yellow"
+                />
+                <Kpi
+                  label="Bloqueados / Vencidos"
+                  value={stats.bloqueado + stats.vencido}
+                  small="requer atenção"
+                  icon={I.lock}
+                  color="red"
+                />
               </section>
 
               <section className="dashboard-only">
                 <h2>Resumo do sistema</h2>
-                <p>Use a aba Licenças para visualizar, copiar, renovar ou bloquear códigos.</p>
+                <p>
+                  Use a aba Licenças para visualizar, copiar, renovar ou
+                  bloquear códigos.
+                </p>
                 <div>
-                  <button className="btn primary" onClick={() => setAba("Licenças")}>Ir para licenças</button>
-                  <button className="btn ghost" onClick={gerarNovoCodigo}>Gerar novo código</button>
+                  <button
+                    className="btn primary"
+                    onClick={() => setAba("Licenças")}
+                  >
+                    Ir para licenças
+                  </button>
+                  <button className="btn ghost" onClick={gerarNovoCodigo}>
+                    Gerar novo código
+                  </button>
                 </div>
               </section>
             </>
@@ -383,9 +594,19 @@ export default function AdminPanel() {
                   <p>Código de 5 dígitos, sem hífen, vinculado pelo app.</p>
                 </div>
                 <div>
-                  <button className="btn primary" onClick={gerarNovoCodigo}>Gerar 1</button>
-                  <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} />
-                  <button className="btn ghost" onClick={gerarLote}>Gerar lote</button>
+                  <button className="btn primary" onClick={gerarNovoCodigo}>
+                    Gerar 1
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                  />
+                  <button className="btn ghost" onClick={gerarLote}>
+                    Gerar lote
+                  </button>
                 </div>
               </section>
 
@@ -419,13 +640,37 @@ export default function AdminPanel() {
             />
           )}
 
-          {aba === "Faturamento" && <SimpleTable title="Faturamento" rows={lista} type="pay" renovar={renovar} />}
-          {aba === "Documentos" && <SimpleTable title="Documentos" rows={lista} type="docs" />}
-          {aba === "Erros" && <SimpleTable title="Erros" rows={lista} type="errors" />}
+          {aba === "Faturamento" && (
+            <SimpleTable
+              title="Faturamento"
+              rows={lista}
+              type="pay"
+              renovar={renovar}
+            />
+          )}
+          {aba === "Documentos" && (
+            <SimpleTable title="Documentos" rows={lista} type="docs" />
+          )}
+          {aba === "Erros" && (
+            <SimpleTable title="Erros" rows={lista} type="errors" />
+          )}
 
           {toast && <Toast toast={toast} />}
-          {modalDetalhes && <DetailsModal row={modalDetalhes} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} />}
-          {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
+          {modalDetalhes && (
+            <DetailsModal
+              row={modalDetalhes}
+              onClose={() => setModalDetalhes(null)}
+              onRenovar={renovar}
+              onBloquear={setModalBloqueio}
+            />
+          )}
+          {modalBloqueio && (
+            <BlockModal
+              row={modalBloqueio}
+              onClose={() => setModalBloqueio(null)}
+              onConfirm={bloquear}
+            />
+          )}
         </main>
       </div>
     </>
@@ -438,7 +683,10 @@ function MenuTitle({ children }) {
 
 function MenuItem({ active, onClick, icon, label, badge }) {
   return (
-    <button className={active ? "menu-item active" : "menu-item"} onClick={onClick}>
+    <button
+      className={active ? "menu-item active" : "menu-item"}
+      onClick={onClick}
+    >
       {icon}
       <span>{label}</span>
       {badge !== undefined ? <small>{badge}</small> : null}
@@ -456,13 +704,26 @@ function Kpi({ label, value, small, icon, color }) {
       <strong>{value}</strong>
       <p>{small}</p>
       <div className="fake-chart">
-        {[1,2,3,4,5,6].map((n) => <b key={n} style={{ height: 8 + n * 4 }} />)}
+        {[1, 2, 3, 4, 5, 6].map((n) => (
+          <b key={n} style={{ height: 8 + n * 4 }} />
+        ))}
       </div>
     </article>
   );
 }
 
-function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarCodigo, renovar, abrirDetalhes, abrirBloqueio }) {
+function LicenseTable({
+  title,
+  subtitle,
+  rows,
+  stats,
+  search,
+  setSearch,
+  copiarCodigo,
+  renovar,
+  abrirDetalhes,
+  abrirBloqueio,
+}) {
   return (
     <section className="table-card">
       <div className="table-title">
@@ -482,7 +743,11 @@ function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarC
       <div className="table-tools">
         <label>
           {I.search}
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código ou cliente..." />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por código ou cliente..."
+          />
         </label>
         <button>{I.filter} Filtrar</button>
         <button>{I.download} Exportar</button>
@@ -501,39 +766,77 @@ function LicenseTable({ title, subtitle, rows, stats, search, setSearch, copiarC
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan="5" className="empty">Nenhum registro encontrado.</td></tr>
-            ) : rows.map((row) => (
-              <tr key={row.id}>
-                <td><span className="code">{row.codigo}</span></td>
-                <td>
-                  <div className="client">
-                    <div>{iniciais(row.nome)}</div>
-                    <span>
-                      <strong>{row.nome || "Aguardando dados"}</strong>
-                      <small>{row.email || row.telefone || "Cliente ainda não vinculado"}</small>
-                    </span>
-                  </div>
-                </td>
-                <td><StatusBadge status={row.status} /></td>
-                <td>{formatarData(row.validade)}</td>
-                <td>
-                  <div className="actions">
-                    <button className="view" onClick={() => abrirDetalhes(row)}>{I.edit} Editar</button>
-                    <button onClick={() => copiarCodigo(row.codigo)}>{I.copy} Copiar</button>
-                    {(row.status === STATUS.ATIVO || row.status === STATUS.VENCIDO) && <button onClick={() => renovar(row)}>{I.renew} Renovar</button>}
-                    <button className="danger" onClick={() => abrirBloqueio(row)}>{I.lock} Bloquear</button>
-                  </div>
+              <tr>
+                <td colSpan="5" className="empty">
+                  Nenhum registro encontrado.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <span className="code">{row.codigo}</span>
+                  </td>
+                  <td>
+                    <div className="client">
+                      <div>{iniciais(row.nome)}</div>
+                      <span>
+                        <strong>{row.nome || "Aguardando dados"}</strong>
+                        <small>
+                          {row.email ||
+                            row.telefone ||
+                            "Cliente ainda não vinculado"}
+                        </small>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <StatusBadge status={row.status} />
+                  </td>
+                  <td>{formatarData(row.validade)}</td>
+                  <td>
+                    <div className="actions">
+                      <button
+                        className="view"
+                        onClick={() => abrirDetalhes(row)}
+                      >
+                        {I.edit} Editar
+                      </button>
+                      <button onClick={() => copiarCodigo(row.codigo)}>
+                        {I.copy} Copiar
+                      </button>
+                      {(row.status === STATUS.ATIVO ||
+                        row.status === STATUS.VENCIDO) && (
+                        <button onClick={() => renovar(row)}>
+                          {I.renew} Renovar
+                        </button>
+                      )}
+                      <button
+                        className="danger"
+                        onClick={() => abrirBloqueio(row)}
+                      >
+                        {I.lock} Bloquear
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       <div className="footer">
-        <span>Mostrando {rows.length} de {stats.total} registros</span>
+        <span>
+          Mostrando {rows.length} de {stats.total} registros
+        </span>
         <div>
-          <button>‹</button><button className="active">1</button><button>2</button><button>3</button><button>…</button><button>›</button>
+          <button>‹</button>
+          <button className="active">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>…</button>
+          <button>›</button>
         </div>
       </div>
     </section>
@@ -563,16 +866,38 @@ function SimpleTable({ title, rows, type, renovar }) {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan="5" className="empty">Nenhum registro encontrado.</td></tr>
-            ) : rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.nome || row.codigo}</td>
-                <td><span className="code">{row.codigo}</span></td>
-                <td>{type === "errors" ? row.ultimo_erro : type === "docs" ? (row.termos_pdf || "Sem termos PDF") : (row.pagamento_status || "Pendente")}</td>
-                <td>{formatarData(row.validade)}</td>
-                {type === "pay" && <td><div className="actions"><button className="view" onClick={() => renovar(row)}>Renovar</button></div></td>}
+              <tr>
+                <td colSpan="5" className="empty">
+                  Nenhum registro encontrado.
+                </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.nome || row.codigo}</td>
+                  <td>
+                    <span className="code">{row.codigo}</span>
+                  </td>
+                  <td>
+                    {type === "errors"
+                      ? row.ultimo_erro
+                      : type === "docs"
+                        ? row.termos_pdf || "Sem termos PDF"
+                        : row.pagamento_status || "Pendente"}
+                  </td>
+                  <td>{formatarData(row.validade)}</td>
+                  {type === "pay" && (
+                    <td>
+                      <div className="actions">
+                        <button className="view" onClick={() => renovar(row)}>
+                          Renovar
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -582,11 +907,20 @@ function SimpleTable({ title, rows, type, renovar }) {
 
 function StatusBadge({ status }) {
   const view = statusView(status);
-  return <span className={`status ${view.cls}`}><i />{view.label}</span>;
+  return (
+    <span className={`status ${view.cls}`}>
+      <i />
+      {view.label}
+    </span>
+  );
 }
 
 function Toast({ toast }) {
-  return <div className={toast.tipo === "erro" ? "toast erro" : "toast"}>{toast.texto}</div>;
+  return (
+    <div className={toast.tipo === "erro" ? "toast erro" : "toast"}>
+      {toast.texto}
+    </div>
+  );
 }
 
 function DetailsModal({ row, onClose, onRenovar, onBloquear }) {
@@ -626,8 +960,12 @@ function DetailsModal({ row, onClose, onRenovar, onBloquear }) {
         </div>
 
         <div className="modal-actions">
-          <button className="btn primary" onClick={() => onRenovar(row)}>Renovar 90 dias</button>
-          <button className="btn ghost" onClick={() => onBloquear(row)}>Bloquear</button>
+          <button className="btn primary" onClick={() => onRenovar(row)}>
+            Renovar 90 dias
+          </button>
+          <button className="btn ghost" onClick={() => onBloquear(row)}>
+            Bloquear
+          </button>
         </div>
       </div>
     </div>
@@ -650,12 +988,23 @@ function BlockModal({ row, onClose, onConfirm }) {
 
         <label className="modal-label">
           Motivo do bloqueio
-          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Exemplo: pagamento vencido" />
+          <textarea
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Exemplo: pagamento vencido"
+          />
         </label>
 
         <div className="modal-actions">
-          <button className="btn ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn primary" onClick={() => onConfirm(row, motivo)}>Confirmar bloqueio</button>
+          <button className="btn ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            className="btn primary"
+            onClick={() => onConfirm(row, motivo)}
+          >
+            Confirmar bloqueio
+          </button>
         </div>
       </div>
     </div>
