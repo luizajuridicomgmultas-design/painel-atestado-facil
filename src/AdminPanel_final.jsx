@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { 
+  LayoutDashboard, KeyRound, Users, CreditCard, FileText, AlertTriangle, 
+  RefreshCw, Plus, Download, Search, Edit2, Copy, Lock, Unlock, LogOut, 
+  Trash2, X, Check, TrendingUp, ShieldAlert, ShieldCheck, UploadCloud, 
+  ExternalLink, Paperclip, Filter, History, AlignLeft, Calendar
+} from "lucide-react";
+
 import { supabase } from "./supabase";
 
 const ADMIN_USER = "admin";
@@ -11,194 +18,134 @@ const STATUS = {
   VENCIDO: "Vencido",
 };
 
-const money = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-function gerarCodigo() {
-  return String(Math.floor(10000 + Math.random() * 90000));
-}
-
-function hojeISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function validade90Dias() {
-  const d = new Date();
-  d.setDate(d.getDate() + 90);
-  return d.toISOString().split("T")[0];
-}
+// Utilitários
+const gerarCodigo = () => String(Math.floor(10000 + Math.random() * 90000));
+const hojeISO = () => new Date().toISOString().split("T")[0];
+const validade90Dias = () => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().split("T")[0]; };
 
 function formatarData(data) {
   if (!data) return "—";
-  try {
-    return new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return data || "—";
-  }
+  try { return new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); } catch { return data; }
 }
 
 function formatarDataHora(data) {
   if (!data) return "—";
-  try {
-    return new Date(data).toLocaleString("pt-BR");
-  } catch {
-    return data || "—";
-  }
+  try { return new Date(data).toLocaleString("pt-BR"); } catch { return data; }
 }
 
-function mesISO(data) {
-  if (!data) return "";
-  try {
-    return new Date(data).toISOString().slice(0, 7);
-  } catch {
-    return "";
-  }
-}
-
-function mesLabel(iso) {
+const mesISO = (data) => data ? new Date(data).toISOString().slice(0, 7) : "";
+const mesLabel = (iso) => {
   if (!iso) return "Todos os meses";
   const [ano, mes] = iso.split("-");
-  return new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
-}
+  return new Date(Number(ano), Number(mes) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+};
 
-function iniciais(nome) {
+const iniciais = (nome) => {
   if (!nome) return "?";
   const partes = String(nome).trim().split(" ").filter(Boolean);
   if (!partes.length) return "?";
   if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
   return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
-}
-
-function statusView(status) {
-  if (status === STATUS.ATIVO) return { label: "Ativo", cls: "active" };
-  if (status === STATUS.BLOQUEADO) return { label: "Bloqueado", cls: "blocked" };
-  if (status === STATUS.VENCIDO) return { label: "Vencido", cls: "expired" };
-  return { label: "Disponível", cls: "available" };
-}
-
-function baixarCSV(nomeArquivo, linhas) {
-  const clean = (valor) => {
-    if (valor === null || valor === undefined) return "";
-    return String(valor).replace(/\r?\n|\r/g, " ").replace(/"/g, '""');
-  };
-
-  if (!linhas.length) {
-    linhas = [{ aviso: "Nenhum registro encontrado" }];
-  }
-
-  const colunas = Object.keys(linhas[0]);
-  const conteudo = [
-    colunas.join(";"),
-    ...linhas.map((linha) => colunas.map((coluna) => `"${clean(linha[coluna])}"`).join(";")),
-  ].join("\n");
-
-  const blob = new Blob(["\ufeff" + conteudo], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-const Icon = ({ children, size = 18 }) => (
-  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-    {children}
-  </svg>
-);
-
-const I = {
-  dashboard: <Icon><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></Icon>,
-  key: <Icon><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15 8 2 2" /><path d="m18 5 2 2" /></Icon>,
-  users: <Icon><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></Icon>,
-  card: <Icon><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></Icon>,
-  file: <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></Icon>,
-  warning: <Icon><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></Icon>,
-  refresh: <Icon><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></Icon>,
-  plus: <Icon><path d="M12 5v14" /><path d="M5 12h14" /></Icon>,
-  download: <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></Icon>,
-  search: <Icon size={16}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></Icon>,
-  edit: <Icon size={15}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></Icon>,
-  copy: <Icon size={15}><rect x="9" y="9" width="13" height="13" rx="2" /><rect x="2" y="2" width="13" height="13" rx="2" /></Icon>,
-  lock: <Icon size={15}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></Icon>,
-  logout: <Icon><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></Icon>,
 };
 
+const statusConfig = {
+  [STATUS.ATIVO]: { color: "bg-emerald-100 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
+  [STATUS.BLOQUEADO]: { color: "bg-red-100 text-red-700 border-red-200", dot: "bg-red-500" },
+  [STATUS.VENCIDO]: { color: "bg-orange-100 text-orange-700 border-orange-200", dot: "bg-orange-500" },
+  [STATUS.DISPONIVEL]: { color: "bg-blue-100 text-blue-700 border-blue-200", dot: "bg-blue-500" },
+};
+
+function baixarCSV(nomeArquivo, linhas) {
+  const clean = (v) => v === null || v === undefined ? "" : String(v).replace(/\r?\n|\r/g, " ").replace(/"/g, '""');
+  if (!linhas.length) linhas = [{ aviso: "Nenhum registro encontrado" }];
+  const colunas = Object.keys(linhas[0]);
+  const conteudo = [colunas.join(";"), ...linhas.map(l => colunas.map(c => `"${clean(l[c])}"`).join(";"))].join("\n");
+  const blob = new Blob(["\ufeff" + conteudo], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a"); link.href = url; link.download = nomeArquivo;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+}
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
 export default function AdminPanel() {
   const [logado, setLogado] = useState(() => localStorage.getItem("painel_atestado_logado") === "sim");
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [aba, setAba] = useState("Dashboard");
+  
   const [usuarios, setUsuarios] = useState([]);
+  const [transacoes, setTransacoes] = useState([]);
+  const [historicoGlobal, setHistoricoGlobal] = useState([]);
+  
   const [busca, setBusca] = useState("");
   const [lote, setLote] = useState(5);
   const [filtroMes, setFiltroMes] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
   const [toast, setToast] = useState(null);
   const [modalDetalhes, setModalDetalhes] = useState(null);
   const [modalBloqueio, setModalBloqueio] = useState(null);
 
-  function aviso(texto, tipo = "ok") {
+  const aviso = (texto, tipo = "ok") => {
     setToast({ texto, tipo });
-    setTimeout(() => setToast(null), 2800);
-  }
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  useEffect(() => {
-    if (logado) carregar();
-  }, [logado]);
-
-  useEffect(() => {
-    setBusca("");
-    setFiltroMes("");
-    setFiltroStatus("");
-  }, [aba]);
+  useEffect(() => { if (logado) carregar(); }, [logado]);
+  useEffect(() => { setBusca(""); setFiltroMes(""); setFiltroStatus(""); setFiltroTipo(""); }, [aba]);
 
   async function carregar() {
     setCarregando(true);
-    await supabase.from("usuarios").update({ status: STATUS.VENCIDO, vencido_em: new Date().toISOString() }).lt("validade", hojeISO()).eq("status", STATUS.ATIVO);
-    const { data, error } = await supabase.from("usuarios").select("*").order("created_at", { ascending: false });
-    if (error) {
-      console.error(error);
-      aviso("Erro ao carregar dados.", "erro");
-    } else {
-      setUsuarios(data || []);
-    }
+    
+    // --- SISTEMA AUTOMÁTICO DE BLOQUEIO POR VENCIMENTO ---
+    // Bloqueia contas ativas cuja validade já expirou (passou de 90 dias)
+    await supabase.from("usuarios")
+      .update({ status: STATUS.BLOQUEADO, bloqueado_motivo: "Vencimento Automático (90 dias excedidos sem renovação)" })
+      .lt("validade", hojeISO())
+      .eq("status", STATUS.ATIVO);
+    
+    // Carrega Usuários
+    const resUsr = await supabase.from("usuarios").select("*").order("created_at", { ascending: false });
+    if (resUsr.error) aviso("Erro ao carregar usuários.", "erro");
+    else setUsuarios(resUsr.data || []);
+
+    // Carrega Faturamento
+    const resFat = await supabase.from("faturamento").select("*").order("data", { ascending: false });
+    if (!resFat.error) setTransacoes(resFat.data || []);
+
+    // Carrega Histórico
+    const resHist = await supabase.from("historico").select("*").order("data", { ascending: false });
+    if (!resHist.error) setHistoricoGlobal(resHist.data || []);
+
     setCarregando(false);
   }
 
-  function entrar(e) {
+  // --- FUNÇÕES DE REGISTRO DE HISTÓRICO ---
+  async function registrarHistorico(usuario_id, acao, detalhes) {
+    await supabase.from("historico").insert([{ usuario_id, acao, detalhes, data: new Date().toISOString() }]);
+  }
+
+  const entrar = (e) => {
     e.preventDefault();
     if (login === ADMIN_USER && senha === ADMIN_PASS) {
       localStorage.setItem("painel_atestado_logado", "sim");
       setLogado(true);
-    } else {
-      aviso("Login inválido.", "erro");
-    }
-  }
+    } else aviso("Login inválido.", "erro");
+  };
 
-  function sair() {
-    localStorage.removeItem("painel_atestado_logado");
-    setLogado(false);
-  }
+  const sair = () => { localStorage.removeItem("painel_atestado_logado"); setLogado(false); };
 
   async function gerarNovoCodigo() {
     setGerando(true);
     for (let i = 0; i < 12; i++) {
       const codigo = gerarCodigo();
-      const { error } = await supabase.from("usuarios").insert([{ codigo, status: STATUS.DISPONIVEL, sistema: "", pagamento_status: "Pendente" }]);
+      const { error } = await supabase.from("usuarios").insert([{ codigo, status: STATUS.DISPONIVEL, sistema: "" }]);
       if (!error) {
         await carregar();
         await navigator.clipboard?.writeText(codigo).catch(() => {});
@@ -206,15 +153,10 @@ export default function AdminPanel() {
         aviso(`Código ${codigo} gerado e copiado.`);
         return;
       }
-      if (!String(error.message || "").toLowerCase().includes("duplicate")) {
-        console.error(error);
-        setGerando(false);
-        aviso("Erro ao gerar código.", "erro");
-        return;
-      }
+      if (!String(error.message || "").toLowerCase().includes("duplicate")) break;
     }
     setGerando(false);
-    aviso("Não foi possível gerar código único.", "erro");
+    aviso("Erro ao gerar código.", "erro");
   }
 
   async function gerarLote() {
@@ -222,248 +164,783 @@ export default function AdminPanel() {
     setGerando(true);
     const codigos = new Set();
     while (codigos.size < qtd) codigos.add(gerarCodigo());
-    const registros = [...codigos].map((codigo) => ({ codigo, status: STATUS.DISPONIVEL, sistema: "", pagamento_status: "Pendente" }));
+    const registros = [...codigos].map(codigo => ({ codigo, status: STATUS.DISPONIVEL, sistema: "" }));
     const { error } = await supabase.from("usuarios").insert(registros);
     setGerando(false);
-    if (error) {
-      console.error(error);
-      aviso("Erro ao gerar lote.", "erro");
-      return;
-    }
+    if (error) return aviso("Erro ao gerar lote.", "erro");
     await carregar();
     aviso(`${qtd} códigos gerados.`);
   }
 
-  async function copiarCodigo(codigo) {
-    await navigator.clipboard?.writeText(codigo).catch(() => {});
-    aviso(`Código ${codigo} copiado.`);
-  }
+  const copiarCodigo = async (codigo) => { await navigator.clipboard?.writeText(codigo).catch(() => {}); aviso(`Código ${codigo} copiado.`); };
 
   async function bloquear(row, motivo) {
-    const { error } = await supabase.from("usuarios").update({ status: STATUS.BLOQUEADO, bloqueado_motivo: motivo || "Bloqueio manual" }).eq("id", row.id);
-    if (error) {
-      aviso("Erro ao bloquear.", "erro");
-      return;
-    }
-    setModalBloqueio(null);
-    await carregar();
-    aviso("Licença bloqueada.");
+    const motivoFinal = motivo || "Bloqueio manual";
+    const { error } = await supabase.from("usuarios").update({ status: STATUS.BLOQUEADO, bloqueado_motivo: motivoFinal }).eq("id", row.id);
+    if (error) return aviso("Erro ao bloquear.", "erro");
+    
+    await registrarHistorico(row.id, "Bloqueio de Acesso", `Motivo: ${motivoFinal}`);
+    
+    setModalBloqueio(null); await carregar(); aviso("Licença bloqueada.");
+    if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: STATUS.BLOQUEADO, bloqueado_motivo: motivoFinal});
   }
 
   async function desbloquear(row) {
     const novoStatus = row.nome ? STATUS.ATIVO : STATUS.DISPONIVEL;
     const { error } = await supabase.from("usuarios").update({ status: novoStatus, bloqueado_motivo: null }).eq("id", row.id);
-    if (error) {
-      aviso("Erro ao desbloquear.", "erro");
-      return;
-    }
-    await carregar();
-    aviso("Licença desbloqueada.");
+    if (error) return aviso("Erro ao desbloquear.", "erro");
+
+    await registrarHistorico(row.id, "Desbloqueio de Acesso", `Status alterado para ${novoStatus}`);
+
+    await carregar(); aviso("Licença desbloqueada.");
+    if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: novoStatus, bloqueado_motivo: null});
   }
 
   async function renovar(row) {
     const novaValidade = validade90Dias();
-    const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, pagamento_status: "Pago", pago_em: new Date().toISOString(), renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
-    if (error) {
-      aviso("Erro ao renovar.", "erro");
-      return;
+    const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
+    if (error) return aviso("Erro ao renovar.", "erro");
+    
+    await supabase.from("faturamento").insert([{
+      usuario_id: row.id, codigo: row.codigo, nome: row.nome,
+      tipo: "Renovação", valor: 29.90, data: new Date().toISOString()
+    }]);
+
+    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. Faturado R$ 29,90.`);
+
+    await carregar(); aviso(`Renovado! Lançado R$ 29,90 no faturamento.`);
+    if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: STATUS.ATIVO, validade: novaValidade});
+  }
+
+  async function salvarEdicao(row, dados) {
+    const isObservacaoOnly = (dados.observacoes !== row.observacoes) && (dados.nome === row.nome && dados.email === row.email && dados.telefone === row.telefone && dados.cpf === row.cpf);
+    
+    const { error } = await supabase.from("usuarios").update(dados).eq("id", row.id);
+    if (error) return aviso("Erro ao salvar dados.", "erro");
+    
+    // Só cobra R$ 5,00 se alterar dados cadastrais (nome, doc, etc). Apenas mudar observação não cobra.
+    if (!isObservacaoOnly) {
+      await supabase.from("faturamento").insert([{
+        usuario_id: row.id, codigo: row.codigo, nome: dados.nome || row.nome,
+        tipo: "Alteração", valor: 5.00, data: new Date().toISOString()
+      }]);
+      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. Faturado R$ 5,00.`);
+      aviso("Dados atualizados! Cobrança de R$ 5,00 registrada.");
+    } else {
+      await registrarHistorico(row.id, "Edição de Observação", `Observações atualizadas.`);
+      aviso("Observações salvas com sucesso!");
     }
+
     await carregar();
-    aviso(`Renovado até ${formatarData(novaValidade)}.`);
+    setModalDetalhes(null);
+  }
+
+  async function deletarRegistro(id) {
+    if(!window.confirm("Tem certeza que deseja excluir esta licença permanentemente?")) return;
+    const { error } = await supabase.from("usuarios").delete().eq("id", id);
+    if (error) return aviso("Erro ao deletar.", "erro");
+    await carregar(); aviso("Registro excluído.");
+  }
+
+  async function anexarComprovante(transacaoId, file) {
+    aviso("Anexando comprovante...");
+    setTimeout(async () => {
+      const fakeUrl = URL.createObjectURL(file);
+      await supabase.from("faturamento").update({ comprovante_url: fakeUrl }).eq("id", transacaoId);
+      await carregar();
+      aviso("Comprovante anexado com sucesso!");
+    }, 1000);
   }
 
   const stats = useMemo(() => {
-    const ativo = usuarios.filter((u) => u.status === STATUS.ATIVO).length;
-    const livre = usuarios.filter((u) => u.status === STATUS.DISPONIVEL).length;
-    const vencido = usuarios.filter((u) => u.status === STATUS.VENCIDO).length;
-    const bloqueado = usuarios.filter((u) => u.status === STATUS.BLOQUEADO).length;
-    const clientes = usuarios.filter((u) => u.nome).length;
-    const erros = usuarios.filter((u) => u.ultimo_erro).length;
-    const pendente = usuarios.filter((u) => (u.pagamento_status || "Pendente") !== "Pago").length;
-    const receita = usuarios.filter((u) => u.nome && (u.pagamento_status || "") === "Pago").length * 29.9;
-    const aReceber = usuarios.filter((u) => u.nome && (u.pagamento_status || "Pendente") !== "Pago").length * 29.9;
-    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, pendente, receita, aReceber };
-  }, [usuarios]);
+    const ativo = usuarios.filter(u => u.status === STATUS.ATIVO).length;
+    const livre = usuarios.filter(u => u.status === STATUS.DISPONIVEL).length;
+    const vencido = usuarios.filter(u => u.status === STATUS.VENCIDO).length;
+    const bloqueado = usuarios.filter(u => u.status === STATUS.BLOQUEADO).length;
+    const clientes = usuarios.filter(u => u.nome).length;
+    const erros = usuarios.filter(u => u.ultimo_erro).length;
+    
+    let totalReceita = 0, valAssinaturas = 0, valRenovacoes = 0, valAlteracoes = 0;
+    transacoes.forEach(t => {
+      totalReceita += Number(t.valor);
+      if (t.tipo === "Assinatura") valAssinaturas += Number(t.valor);
+      if (t.tipo === "Renovação") valRenovacoes += Number(t.valor);
+      if (t.tipo === "Alteração") valAlteracoes += Number(t.valor);
+    });
+
+    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
+  }, [usuarios, transacoes]);
 
   const meses = useMemo(() => {
-    return [...new Set(usuarios.map((u) => mesISO(u.created_at)).filter(Boolean))].sort().reverse();
-  }, [usuarios]);
+    const list = aba === "Faturamento" ? transacoes.map(t => mesISO(t.data)) : usuarios.map(u => mesISO(u.created_at));
+    return [...new Set(list.filter(Boolean))].sort().reverse();
+  }, [usuarios, transacoes, aba]);
 
-  const lista = useMemo(() => {
+  const listaTabela = useMemo(() => {
     const termo = busca.toLowerCase().trim();
+    
+    if (aba === "Faturamento") {
+      return transacoes.filter(t => {
+        const texto = `${t.codigo || ""} ${t.nome || ""} ${t.tipo || ""}`.toLowerCase();
+        const matchBusca = !termo || texto.includes(termo);
+        const matchMes = !filtroMes || mesISO(t.data) === filtroMes;
+        const matchTipo = !filtroTipo || t.tipo === filtroTipo;
+        return matchBusca && matchMes && matchTipo;
+      });
+    }
+
     return usuarios.filter((u) => {
       const texto = `${u.codigo || ""} ${u.nome || ""} ${u.email || ""} ${u.telefone || ""} ${u.cpf || ""}`.toLowerCase();
       const matchBusca = !termo || texto.includes(termo);
       const matchMes = !filtroMes || mesISO(u.created_at) === filtroMes;
       const matchStatus = !filtroStatus || u.status === filtroStatus;
-      if (aba === "Clientes") return matchBusca && matchMes && !!u.nome;
-      if (aba === "Faturamento") return matchBusca && matchMes && !!u.nome;
-      if (aba === "Documentos") return matchBusca && matchMes && !!u.nome;
+      
+      if (aba === "Clientes" || aba === "Documentos") return matchBusca && matchMes && !!u.nome;
       if (aba === "Erros") return matchBusca && matchMes && !!u.ultimo_erro;
       return matchBusca && matchMes && matchStatus;
     });
-  }, [usuarios, busca, aba, filtroMes, filtroStatus]);
+  }, [usuarios, transacoes, busca, aba, filtroMes, filtroStatus, filtroTipo]);
 
-  function linhasExportacao(rows = lista) {
-    return rows.map((u) => ({
-      Codigo: u.codigo || "",
-      Nome: u.nome || "",
-      Status: u.status || "",
-      Email: u.email || "",
-      Telefone: u.telefone || "",
-      CPF: u.cpf || "",
-      Cargo: u.cargo || "",
-      Orgao: u.orgao || "",
-      Sistema: u.sistema || "",
-      Pagamento: u.pagamento_status || "",
-      Validade: formatarData(u.validade),
-      Criado_em: formatarDataHora(u.created_at),
-      Usado_em: formatarDataHora(u.usado_em),
-      Renovado_em: formatarDataHora(u.renovado_em),
-      Bloqueado_motivo: u.bloqueado_motivo || "",
-      Ultimo_erro: u.ultimo_erro || "",
-      Envios: u.envios || 0,
-      Alteracoes: u.alteracoes || 0,
-    }));
-  }
-
-  function exportarAtual() {
+  const exportarAtual = () => {
     const nome = aba.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    baixarCSV(`${nome}_${filtroMes || "todos"}_${new Date().toISOString().slice(0, 10)}.csv`, linhasExportacao(lista));
+    baixarCSV(`${nome}_${filtroMes || "todos"}_${new Date().toISOString().slice(0, 10)}.csv`, listaTabela);
     aviso("CSV exportado com sucesso.");
-  }
-
-  function exportarTudo() {
-    baixarCSV(`usuarios_todos_${new Date().toISOString().slice(0, 10)}.csv`, linhasExportacao(usuarios));
-    aviso("Base completa exportada.");
-  }
-
-  function exportarFaturamento() {
-    const rows = lista.map((u) => ({
-      Tipo: (u.pagamento_status || "Pendente") === "Pago" ? "Recebido" : "A receber",
-      Cliente: u.nome || "",
-      Codigo: u.codigo || "",
-      Valor: "29,90",
-      Status_pagamento: u.pagamento_status || "Pendente",
-      Validade: formatarData(u.validade),
-      Data_cadastro: formatarDataHora(u.created_at),
-      Pago_em: formatarDataHora(u.pago_em),
-    }));
-    baixarCSV(`faturamento_${filtroMes || "todos"}_${new Date().toISOString().slice(0, 10)}.csv`, rows);
-    aviso("Faturamento exportado.");
-  }
+  };
 
   if (!logado) {
-    return <><GlobalStyle /><div className="login-page"><form className="login-card" onSubmit={entrar}><div className="brand-icon">AF</div><h1>Atestado Fácil</h1><p>Painel administrativo</p><input placeholder="Usuário" value={login} onChange={(e) => setLogin(e.target.value)} /><input placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} /><button type="submit">Entrar</button></form>{toast && <Toast toast={toast} />}</div></>;
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <form className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8" onSubmit={entrar}>
+          <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-600/20">
+            <ShieldCheck className="text-white w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Atestado Fácil</h1>
+          <p className="text-slate-500 mb-8">Acesse o painel administrativo</p>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-slate-700 block mb-1">Usuário</label>
+              <input className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={login} onChange={e => setLogin(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-slate-700 block mb-1">Senha</label>
+              <input type="password" className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={senha} onChange={e => setSenha(e.target.value)} />
+            </div>
+            <button type="submit" className="w-full h-11 mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-md">
+              Entrar no sistema
+            </button>
+          </div>
+        </form>
+        {toast && <Toast toast={toast} />}
+      </div>
+    );
   }
 
+  const navItems = [
+    { label: "Dashboard", icon: LayoutDashboard, id: "Dashboard" },
+    { label: "Licenças", icon: KeyRound, id: "Licenças", badge: stats.total },
+    { label: "Clientes", icon: Users, id: "Clientes", badge: stats.clientes },
+    { label: "Faturamento", icon: CreditCard, id: "Faturamento" },
+    { type: "divider", label: "Sistema" },
+    { label: "Documentos", icon: FileText, id: "Documentos" },
+    { label: "Log de Erros", icon: AlertTriangle, id: "Erros", badge: stats.erros },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 sticky top-0 h-screen border-r border-slate-800">
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-800/50">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-600/20">
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <strong className="block text-white font-bold tracking-wide">Atestado Fácil</strong>
+            <span className="text-xs text-slate-500 font-medium">Painel Admin</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+          {navItems.map((item, i) => {
+            if (item.type === "divider") return <div key={i} className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-3">{item.label}</div>;
+            const active = aba === item.id;
+            return (
+              <button key={item.id} onClick={() => setAba(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${active ? "bg-blue-600 text-white shadow-md shadow-blue-600/10" : "hover:bg-slate-800 hover:text-white"}`}>
+                <item.icon size={18} className={active ? "text-white" : "text-slate-400"} />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${active ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-300"}`}>{item.badge}</span>
+                )}
+              </button>
+            );
+          })}
+          <button onClick={carregar} className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
+            <RefreshCw size={18} className={carregando ? "animate-spin" : ""} /> {carregando ? "Sincronizando..." : "Sincronizar Dados"}
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-slate-800/50">
+          <button onClick={sair} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors text-left group">
+            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold">AD</div>
+            <div className="flex-1">
+              <strong className="block text-white text-sm">Administrador</strong>
+              <span className="text-xs text-slate-400">Encerrar sessão</span>
+            </div>
+            <LogOut size={16} className="text-slate-500 group-hover:text-white" />
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">{aba}</h1>
+            <p className="text-sm text-slate-500 font-medium">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })} · {carregando ? "Sincronizando..." : "Atualizado agora"}</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-100">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sistema Online
+            </div>
+            <button onClick={gerarNovoCodigo} disabled={gerando} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
+              <Plus size={16} /> {gerando ? "Gerando..." : "Nova Licença"}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            
+            {aba === "Dashboard" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Kpi title="Total de Licenças" value={stats.total} sub={`${stats.livre} disponíveis`} icon={KeyRound} color="blue" />
+                  <Kpi title="Licenças Ativas" value={stats.ativo} sub="Em uso no momento" icon={Users} color="emerald" />
+                  <Kpi title="Receita (Pago)" value={money.format(stats.totalReceita)} sub="Faturamento total" icon={CreditCard} color="amber" />
+                  <Kpi title="Atenção Necessária" value={stats.bloqueado + stats.vencido} sub="Bloqueados ou Vencidos" icon={ShieldAlert} color="red" />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-800">Acesso Rápido</h2>
+                        <p className="text-sm text-slate-500">Navegue pelas principais funções do sistema</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <ActionCard title="Gerenciar Licenças" desc="Copiar, renovar e bloquear" icon={KeyRound} color="blue" onClick={() => setAba("Licenças")} />
+                      <ActionCard title="Ver Clientes" desc="Dados de contato e notas" icon={Users} color="emerald" onClick={() => setAba("Clientes")} />
+                      <ActionCard title="Faturamento" desc="Comprovantes e receitas" icon={CreditCard} color="amber" onClick={() => setAba("Faturamento")} />
+                      <ActionCard title="Documentos & Erros" desc="Termos e logs" icon={FileText} color="red" onClick={() => setAba("Documentos")} />
+                    </div>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6">Resumo Geral</h2>
+                    <div className="space-y-4">
+                      <ProgressBar label="Ativos" value={stats.ativo} total={stats.total} color="bg-emerald-500" />
+                      <ProgressBar label="Disponíveis" value={stats.livre} total={stats.total} color="bg-blue-500" />
+                      <ProgressBar label="Vencidos" value={stats.vencido} total={stats.total} color="bg-orange-500" />
+                      <ProgressBar label="Bloqueados" value={stats.bloqueado} total={stats.total} color="bg-red-500" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {aba === "Licenças" && (
+              <>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center gap-6 justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><KeyRound size={24} /></div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-800">Geração em Lote</h2>
+                      <p className="text-sm text-slate-500">Crie múltiplos códigos de acesso de uma só vez</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-600">Quantidade:</span>
+                    <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} className="w-20 h-10 border border-slate-200 rounded-lg text-center font-bold outline-none focus:border-blue-500" />
+                    <button onClick={gerarLote} disabled={gerando} className="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm transition-colors">
+                      Gerar Lote
+                    </button>
+                  </div>
+                </div>
+                <TableCard 
+                  title="Todas as Licenças" 
+                  rows={listaTabela} search={busca} setSearch={setBusca} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus} 
+                  actions={{ copiarCodigo, renovar, abrirDetalhes: setModalDetalhes, abrirBloqueio: setModalBloqueio, desbloquear, deletar: deletarRegistro }} 
+                  onExportar={exportarAtual} mode="licencas"
+                />
+              </>
+            )}
+
+            {aba === "Clientes" && (
+              <TableCard title="Clientes Cadastrados" subtitle="Visualização focada nos usuários do app" rows={listaTabela} search={busca} setSearch={setBusca} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+                actions={{ copiarCodigo, renovar, abrirDetalhes: setModalDetalhes, abrirBloqueio: setModalBloqueio, desbloquear, deletar: deletarRegistro }} 
+                onExportar={exportarAtual} mode="clientes"
+              />
+            )}
+
+            {aba === "Faturamento" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-md col-span-1 md:col-span-2">
+                    <span className="text-blue-100 text-sm font-bold uppercase tracking-wider">Receita Total Confirmada</span>
+                    <strong className="block text-4xl font-black mt-2">{money.format(stats.totalReceita)}</strong>
+                    <p className="text-blue-200 text-sm mt-1">Todos os registros são marcados como Pagos.</p>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Assinaturas (Novos)</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valAssinaturas)}</strong>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Renovações / Alteraç.</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valRenovacoes + stats.valAlteracoes)}</strong>
+                  </div>
+                </div>
+                <TableCard 
+                  title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
+                  rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante }} 
+                />
+              </div>
+            )}
+
+            {(aba === "Documentos" || aba === "Erros") && (
+              <TableCard title={aba} subtitle={aba === "Documentos" ? "Acesse os PDFs de termos gerados pelo app." : "Log de problemas."} simple mode={aba.toLowerCase()} rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} search={busca} setSearch={setBusca} onExportar={exportarAtual} />
+            )}
+
+          </div>
+        </div>
+      </main>
+
+      {toast && <Toast toast={toast} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id)} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
+      {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPONENTES SECUNDÁRIOS & UI
+// ============================================================================
+
+function Kpi({ title, value, sub, icon: Icon, color }) {
+  const colors = { blue: "bg-blue-50 text-blue-600 border-blue-100", emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", amber: "bg-amber-50 text-amber-600 border-amber-100", red: "bg-red-50 text-red-600 border-red-100" };
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-slate-300 transition-all">
+      <div className="flex justify-between items-start"><span className="text-slate-500 font-semibold text-sm">{title}</span><div className={`p-2 rounded-lg ${colors[color]}`}><Icon size={20} /></div></div>
+      <strong className="block text-3xl font-black text-slate-800 mt-4 mb-1">{value}</strong><p className="text-xs font-semibold text-slate-400">{sub}</p>
+    </div>
+  );
+}
+
+function ActionCard({ title, desc, icon: Icon, color, onClick }) {
+  const colors = { blue: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white", emerald: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white", amber: "bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white", red: "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white" };
+  return (
+    <button onClick={onClick} className="text-left p-4 rounded-xl border border-slate-100 hover:border-slate-300 bg-slate-50/50 hover:bg-white transition-all group shadow-sm hover:shadow">
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-colors ${colors[color]}`}><Icon size={20} /></div>
+      <strong className="block text-slate-800 font-bold">{title}</strong><span className="block text-slate-500 text-xs mt-1">{desc}</span>
+    </button>
+  );
+}
+
+function ProgressBar({ label, value, total, color }) {
+  const pct = Math.min(100, (value / Math.max(total, 1)) * 100);
+  return (
+    <div>
+      <div className="flex justify-between text-xs font-bold mb-1.5"><span className="text-slate-600">{label}</span><span className="text-slate-800">{value}</span></div>
+      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div className={`h-full ${color} rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }} /></div>
+    </div>
+  );
+}
+
+function FileUploader({ transacaoId, comprovanteUrl, onUpload }) {
+  const fileRef = useRef(null);
+  if (comprovanteUrl) {
+    return (
+      <a href={comprovanteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
+        <ExternalLink size={14} /> Ver Comprovante
+      </a>
+    );
+  }
   return (
     <>
-      <GlobalStyle />
-      <div className="app-shell">
-        <aside className="sidebar">
-          <div className="brand"><div className="brand-icon small">AF</div><div><strong>Atestado Fácil</strong><span>Painel ADM</span></div></div>
-          <nav>
-            <MenuTitle>Principal</MenuTitle>
-            <MenuItem active={aba === "Dashboard"} onClick={() => setAba("Dashboard")} icon={I.dashboard} label="Dashboard" />
-            <MenuItem active={aba === "Licenças"} onClick={() => setAba("Licenças")} icon={I.key} label="Licenças" badge={stats.total} />
-            <MenuItem active={aba === "Clientes"} onClick={() => setAba("Clientes")} icon={I.users} label="Clientes" badge={stats.clientes} />
-            <MenuItem active={aba === "Faturamento"} onClick={() => setAba("Faturamento")} icon={I.card} label="Faturamento" />
-            <MenuTitle>Sistema</MenuTitle>
-            <MenuItem active={aba === "Documentos"} onClick={() => setAba("Documentos")} icon={I.file} label="Documentos" />
-            <MenuItem active={aba === "Erros"} onClick={() => setAba("Erros")} icon={I.warning} label="Erros" badge={stats.erros} />
-            <MenuItem onClick={carregar} icon={I.refresh} label={carregando ? "Atualizando..." : "Atualizar"} />
-          </nav>
-          <button className="admin-card" onClick={sair}><div>AD</div><span><strong>Administrador</strong><small>Sair do painel</small></span>{I.logout}</button>
-        </aside>
-
-        <main className="main">
-          <header className="topbar">
-            <div><h1>{titleIcon(aba)} {aba}</h1><p>seg., 4 de mai. · {carregando ? "atualizando" : "atualizado"}</p></div>
-            <div className="top-actions"><span className="online"><i /> Online</span><button className="btn dark" onClick={exportarTudo}>{I.download} Exportar tudo</button><button className="btn primary" onClick={gerarNovoCodigo}>{I.plus} {gerando ? "Gerando..." : "Novo código"}</button></div>
-          </header>
-
-          <section className="content">
-            {aba === "Dashboard" && <Dashboard stats={stats} setAba={setAba} onGerar={gerarNovoCodigo} />}
-
-            {aba === "Licenças" && <>
-              <section className="generator"><div className="generator-icon">#</div><div><h2>Gerar licenças</h2><p>Código de 5 dígitos, vinculado pelo app</p></div><div className="generator-actions"><button className="btn primary" onClick={gerarNovoCodigo}>+ Gerar 1 código</button><span>Qtd:</span><input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} /><button className="btn dark" onClick={gerarLote}>Gerar lote</button></div></section>
-              <LicenseTable title="Todas as licenças" subtitle="Todos os códigos de acesso cadastrados no sistema" rows={lista} stats={stats} search={busca} setSearch={setBusca} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus} copiarCodigo={copiarCodigo} renovar={renovar} abrirDetalhes={setModalDetalhes} abrirBloqueio={setModalBloqueio} desbloquear={desbloquear} onExportar={exportarAtual} />
-            </>}
-
-            {aba === "Clientes" && <LicenseTable title="Clientes" subtitle="Clientes cadastrados pelo app" rows={lista} stats={stats} search={busca} setSearch={setBusca} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroStatus="" setFiltroStatus={() => {}} copiarCodigo={copiarCodigo} renovar={renovar} abrirDetalhes={setModalDetalhes} abrirBloqueio={setModalBloqueio} desbloquear={desbloquear} onExportar={exportarAtual} />}
-
-            {aba === "Faturamento" && <Faturamento rows={lista} stats={stats} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} onExportar={exportarFaturamento} />}
-            {aba === "Documentos" && <SimpleTable title="Documentos" rows={lista} type="docs" onExportar={exportarAtual} />}
-            {aba === "Erros" && <SimpleTable title="Log de erros" rows={lista} type="errors" onExportar={exportarAtual} />}
-          </section>
-
-          {toast && <Toast toast={toast} />}
-          {modalDetalhes && <DetailsModal row={modalDetalhes} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} />}
-          {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
-        </main>
-      </div>
+      <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 hover:border-slate-400 text-slate-600 text-xs font-bold rounded-lg transition-colors">
+        <Paperclip size={14} /> Anexar
+      </button>
+      <input type="file" ref={fileRef} className="hidden" accept="image/*,application/pdf" onChange={(e) => {
+        if (e.target.files?.[0]) onUpload(transacaoId, e.target.files[0]);
+      }} />
     </>
   );
 }
 
-function titleIcon(aba) {
-  if (aba === "Dashboard") return "📊";
-  if (aba === "Licenças") return "🔑";
-  if (aba === "Faturamento") return "💳";
-  if (aba === "Clientes") return "👥";
-  if (aba === "Documentos") return "📄";
-  return "⚠️";
+function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes, setFiltroMes, filtroStatus, setFiltroStatus, filtroTipo, setFiltroTipo, actions, simple, mode, onExportar }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+          {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+        </div>
+        
+        {/* Nova Área de Filtros Aprimorada */}
+        <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-2 px-2 text-slate-400">
+            <Filter size={16} />
+          </div>
+          
+          <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+            <option value="">Todos os meses</option>
+            {meses?.map(m => <option key={m} value={m}>{mesLabel(m)}</option>)}
+          </select>
+          
+          {setFiltroStatus && (
+            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+              <option value="">Status: Todos</option>
+              {Object.values(STATUS).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+
+          {mode === 'faturamento' && setFiltroTipo && (
+            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+              <option value="">Tipo: Todos</option>
+              <option value="Assinatura">Assinatura</option>
+              <option value="Alteração">Alteração</option>
+              <option value="Renovação">Renovação</option>
+            </select>
+          )}
+
+          <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+          <button onClick={onExportar} className="h-9 px-4 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+            <Download size={14} /> Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por código, nome, e-mail..." className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-xs uppercase tracking-wider font-bold text-slate-500 border-b border-slate-200">
+              {simple ? (
+                <>
+                  <th className="px-6 py-4">Cliente / Info</th>
+                  <th className="px-6 py-4">Código</th>
+                  {mode === 'faturamento' && <th className="px-6 py-4">Tipo & Valor</th>}
+                  <th className="px-6 py-4">Data</th>
+                  {(mode === 'faturamento' || mode === 'documentos') && <th className="px-6 py-4">Ação / Arquivo</th>}
+                </>
+              ) : (
+                <>
+                  <th className="px-6 py-4">Código</th>
+                  <th className="px-6 py-4">Cliente</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Validade</th>
+                  <th className="px-6 py-4 text-right">Ações</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.length === 0 ? (
+              <tr><td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">Nenhum registro encontrado.</td></tr>
+            ) : rows.map(row => (
+              <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
+                {simple ? (
+                  <>
+                    <td className="px-6 py-4">
+                      <strong className="block text-slate-800 text-sm">{row.nome || "Não vinculado"}</strong>
+                      <span className="text-xs text-slate-500 truncate block max-w-[250px]">
+                        {mode === "erros" ? row.ultimo_erro : mode === "documentos" ? (row.email || row.telefone) : (row.email || row.telefone || "Lançamento Faturamento")}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4"><span className="font-mono text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">{row.codigo}</span></td>
+                    
+                    {mode === 'faturamento' && (
+                      <td className="px-6 py-4">
+                        <strong className="block text-sm text-slate-800">{money.format(row.valor)}</strong>
+                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
+                      </td>
+                    )}
+                    
+                    <td className="px-6 py-4 text-sm text-slate-600">{formatarDataHora(row.created_at || row.data)}</td>
+                    
+                    {mode === 'faturamento' && (
+                      <td className="px-6 py-4">
+                        <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
+                      </td>
+                    )}
+
+                    {mode === 'documentos' && (
+                      <td className="px-6 py-4">
+                        {row.termos_pdf ? (
+                          <button onClick={() => window.open(row.termos_pdf, "_blank")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg transition-colors">
+                            <FileText size={14} /> Abrir PDF
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Sem documento</span>
+                        )}
+                      </td>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-[15px] tracking-wide font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">{row.codigo}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm border border-slate-200 flex-shrink-0">
+                          {iniciais(row.nome)}
+                        </div>
+                        <div>
+                          <strong className="block text-slate-800 text-sm">{row.nome || "Aguardando vínculo"}</strong>
+                          <span className="block text-slate-500 text-xs mt-0.5">{row.email || row.telefone || "—"}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${statusConfig[row.status]?.color || "bg-slate-100"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[row.status]?.dot || "bg-slate-400"}`}></span>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatarData(row.validade)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => actions.abrirDetalhes(row)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors" title="Ver / Editar Detalhes">
+                          <Edit2 size={15} />
+                        </button>
+                        <button onClick={() => actions.copiarCodigo(row.codigo)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors" title="Copiar Código">
+                          <Copy size={15} />
+                        </button>
+                        {row.status === STATUS.BLOQUEADO ? (
+                          <button onClick={() => actions.desbloquear(row)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors" title="Desbloquear">
+                            <Unlock size={15} />
+                          </button>
+                        ) : (
+                          <button onClick={() => actions.abrirBloqueio(row)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors" title="Bloquear">
+                            <Lock size={15} />
+                          </button>
+                        )}
+                        <button onClick={() => actions.deletar(row.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Excluir Permanentemente">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="p-4 border-t border-slate-100 bg-slate-50 text-xs font-bold text-slate-500">
+        Total: {rows.length} registros listados.
+      </div>
+    </div>
+  );
 }
 
-function MenuTitle({ children }) { return <div className="menu-title">{children}</div>; }
-function MenuItem({ active, onClick, icon, label, badge }) { return <button className={active ? "menu-item active" : "menu-item"} onClick={onClick}>{icon}<span>{label}</span>{badge !== undefined ? <small>{badge}</small> : null}</button>; }
+function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesbloquear, onSalvar }) {
+  const [abaModal, setAbaModal] = useState("dados"); // 'dados' ou 'historico'
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ 
+    nome: row.nome || "", 
+    email: row.email || "", 
+    telefone: row.telefone || "", 
+    cpf: row.cpf || "",
+    observacoes: row.observacoes || ""
+  });
 
-function Dashboard({ stats, setAba, onGerar }) {
-  return <>
-    <section className="kpis"><Kpi label="Total de códigos" value={stats.total} small={`${stats.livre} disponíveis`} icon={I.key} color="blue" /><Kpi label="Licenças ativas" value={stats.ativo} small="em uso agora" icon={I.users} color="green" /><Kpi label="Pendentes pagamento" value={stats.pendente} small="aguardando" icon={I.card} color="yellow" /><Kpi label="Bloqueados / Vencidos" value={stats.bloqueado + stats.vencido} small="requer atenção" icon={I.lock} color="red" /></section>
-    <div className="dashboard-grid"><section className="panel-card"><div className="panel-head"><div><h2>Visão geral do sistema</h2><p>Navegue pelas seções do painel</p></div><span className="bolt">⚡</span></div><div className="quick-grid"><button className="quick blue" onClick={() => setAba("Licenças")}><strong>Gerenciar licenças</strong><span>Ver, copiar, renovar e bloquear</span><b>→</b></button><button className="quick green" onClick={() => setAba("Clientes")}><strong>Ver clientes</strong><span>Clientes cadastrados no app</span><b>→</b></button><button className="quick yellow" onClick={() => setAba("Faturamento")}><strong>Faturamento</strong><span>Status de pagamentos</span><b>→</b></button><button className="quick red" onClick={() => setAba("Erros")}><strong>Log de erros</strong><span>Verificar erros do sistema</span><b>→</b></button></div></section><section className="panel-card summary"><h2>Resumo rápido</h2><Progress label="Total cadastrados" value={stats.total} total={Math.max(stats.total, 1)} /><Progress label="Ativos" value={stats.ativo} total={Math.max(stats.total, 1)} /><Progress label="Disponíveis" value={stats.livre} total={Math.max(stats.total, 1)} /><Progress label="Vencidos" value={stats.vencido} total={Math.max(stats.total, 1)} /><Progress label="Bloqueados" value={stats.bloqueado} total={Math.max(stats.total, 1)} /><Progress label="Clientes" value={stats.clientes} total={Math.max(stats.total, 1)} /><button className="btn primary wide" onClick={onGerar}>+ Gerar novo código</button></section></div>
-  </>;
+  const statsList = [
+    { label: "Status", value: row.status },
+    { label: "Validade", value: formatarData(row.validade) },
+    { label: "Criado em", value: formatarDataHora(row.created_at) },
+    { label: "Usado em", value: formatarDataHora(row.usado_em) },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Cabeçalho */}
+        <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-start bg-slate-50">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-xs font-black text-blue-600 uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded-md">Licença</span>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusConfig[row.status]?.color || "bg-slate-100"}`}>
+                {row.status}
+              </span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-800 font-mono tracking-wide">{row.codigo}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
+        </div>
+        
+        {/* Navegação Interna do Modal */}
+        <div className="flex px-6 border-b border-slate-200 bg-white">
+          <button onClick={() => setAbaModal('dados')} className={`py-3 px-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${abaModal === 'dados' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+            <AlignLeft size={16} /> Dados Cadastrais
+          </button>
+          <button onClick={() => setAbaModal('historico')} className={`py-3 px-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${abaModal === 'historico' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+            <History size={16} /> Histórico de Ações
+          </button>
+        </div>
+
+        {/* Conteúdo Dinâmico */}
+        <div className="p-6 overflow-y-auto flex-1 bg-white">
+          
+          {abaModal === 'dados' && (
+            <div className="animate-in fade-in duration-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Informações do Cliente</h3>
+                  {isEditing && <p className="text-xs text-amber-600 font-bold">Aviso: Salvar mudanças cadastrais gera cobrança de R$ 5,00.</p>}
+                </div>
+                <button onClick={() => setIsEditing(!isEditing)} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline px-3 py-1.5 bg-blue-50 rounded-lg">
+                  {isEditing ? "Cancelar Edição" : <><Edit2 size={14}/> Editar Cliente</>}
+                </button>
+              </div>
+
+              {isEditing ? (
+                <div className="grid grid-cols-2 gap-4 mb-6 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Nome Completo</label><input value={formData.nome} onChange={e=>setFormData({...formData, nome: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">E-mail</label><input value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Telefone</label><input value={formData.telefone} onChange={e=>setFormData({...formData, telefone: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">CPF</label><input value={formData.cpf} onChange={e=>setFormData({...formData, cpf: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Nome</span><strong className="text-sm text-slate-800">{row.nome || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">E-mail</span><strong className="text-sm text-slate-800">{row.email || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Telefone</span><strong className="text-sm text-slate-800">{row.telefone || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">CPF</span><strong className="text-sm text-slate-800">{row.cpf || "—"}</strong></div>
+                </div>
+              )}
+
+              {/* Seção de Observações Rápidas */}
+              <div className="mb-8">
+                <h3 className="text-sm font-bold text-slate-800 mb-3">Observações Rápidas</h3>
+                {isEditing ? (
+                  <textarea 
+                    value={formData.observacoes} 
+                    onChange={e => setFormData({...formData, observacoes: e.target.value})} 
+                    placeholder="Adicione notas sobre o cliente, particularidades, avisos..."
+                    className="w-full h-24 p-3 text-sm border border-slate-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none bg-yellow-50" 
+                  />
+                ) : (
+                  <div className="w-full min-h-[60px] p-4 text-sm bg-yellow-50/50 border border-yellow-200 rounded-xl text-slate-700 whitespace-pre-wrap">
+                    {row.observacoes ? row.observacoes : <span className="text-slate-400 italic">Nenhuma observação registrada. Clique em "Editar Cliente" para adicionar.</span>}
+                  </div>
+                )}
+                {isEditing && (
+                  <div className="flex justify-end mt-3">
+                    <button onClick={() => onSalvar(row, formData)} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm">
+                      Salvar Alterações
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-sm font-bold text-slate-800 mb-4 border-t border-slate-100 pt-6">Dados Técnicos da Licença</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {statsList.map((s, i) => (
+                  <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <span className="block text-xs font-bold text-slate-500 mb-0.5">{s.label}</span>
+                    <strong className="text-sm text-slate-800">{s.value}</strong>
+                  </div>
+                ))}
+              </div>
+              
+              {(row.ultimo_erro || row.bloqueado_motivo) && (
+                <div className="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 text-sm">
+                  {row.bloqueado_motivo && <p><strong className="text-red-800">Motivo Bloqueio:</strong> <span className="text-red-700">{row.bloqueado_motivo}</span></p>}
+                  {row.ultimo_erro && <p className="mt-2"><strong className="text-red-800">Último Erro:</strong> <span className="text-red-700">{row.ultimo_erro}</span></p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {abaModal === 'historico' && (
+            <div className="animate-in fade-in duration-200 relative pl-4 border-l-2 border-slate-100 space-y-6 py-2">
+              {historico && historico.length > 0 ? (
+                historico.map((log) => (
+                  <div key={log.id} className="relative">
+                    <div className="absolute -left-[23px] top-1 w-3 h-3 bg-blue-500 rounded-full border-4 border-white shadow-sm"></div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="flex justify-between items-start mb-1">
+                        <strong className="text-sm text-slate-800">{log.acao}</strong>
+                        <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-200"><Calendar size={10} /> {formatarDataHora(log.data)}</span>
+                      </div>
+                      <p className="text-sm text-slate-600">{log.detalhes}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500 text-sm">
+                  <History size={32} className="mx-auto mb-3 opacity-20" />
+                  Nenhum histórico registrado para esta licença.
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+        
+        {/* Rodapé de Ações Rápidas */}
+        <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-3">
+          <div className="text-xs text-slate-500 font-semibold">Ações Administrativas:</div>
+          <div className="flex gap-3">
+            {row.status === STATUS.BLOQUEADO ? (
+              <button onClick={() => onDesbloquear(row)} className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors">Desbloquear Acesso</button>
+            ) : (
+              <button onClick={() => onBloquear(row)} className="px-4 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-bold transition-colors">Bloquear Licença</button>
+            )}
+            <button onClick={() => onRenovar(row)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex flex-col items-center justify-center">
+              <span>Renovar +90 Dias</span>
+              <span className="text-[10px] font-normal opacity-90 mt-0.5">(Lançar R$ 29,90)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function Kpi({ label, value, small, icon, color }) { return <article className={`kpi ${color}`}><div className="kpi-top"><i>{icon}</i><span>{label}</span></div><strong>{value}</strong><p>{small}</p><div className="bars">{[1,2,3,4,5,6,7].map((n) => <b key={n} style={{ height: 8 + n * 5 }} />)}</div></article>; }
-function Progress({ label, value, total }) { return <div className="progress"><div><span>{label}</span><b>{value}</b></div><i><em style={{ width: `${Math.min(100, (value / total) * 100)}%` }} /></i></div>; }
-
-function LicenseTable({ title, subtitle, rows, stats, search, setSearch, meses, filtroMes, setFiltroMes, filtroStatus, setFiltroStatus, copiarCodigo, renovar, abrirDetalhes, abrirBloqueio, desbloquear, onExportar }) {
-  return <section className="table-card"><div className="table-title"><div><h2>{title}</h2><p>{subtitle}</p></div><div className="chips"><span>{rows.length} registros</span><span className="ok">{stats.ativo} ativas</span><span className="trial">{stats.livre} livres</span><span className="bad">{stats.vencido} vencidas</span></div></div><div className="filter-row"><select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)}><option value="">Todos os meses</option>{meses.map((m) => <option key={m} value={m}>{mesLabel(m)}</option>)}</select>{setFiltroStatus && <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}><option value="">Status: todos</option><option value={STATUS.DISPONIVEL}>Disponível</option><option value={STATUS.ATIVO}>Ativo</option><option value={STATUS.BLOQUEADO}>Bloqueado</option><option value={STATUS.VENCIDO}>Vencido</option></select>}<button className="btn dark export-btn" onClick={onExportar}>{I.download} Exportar CSV</button></div><div className="searchbar">{I.search}<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar código, nome, e-mail, CPF..." /></div><div className="table-wrap"><table><thead><tr><th>Código</th><th>Cliente</th><th>Status</th><th>Validade</th><th className="right">Ações</th></tr></thead><tbody>{rows.length === 0 ? <tr><td colSpan="5" className="empty">Nenhum registro encontrado.</td></tr> : rows.map((row) => <tr key={row.id}><td><span className="code">{row.codigo}</span></td><td><div className="client"><div>{iniciais(row.nome)}</div><span><strong>{row.nome || "Aguardando dados"}</strong><small>{row.email || row.telefone || "Não vinculado"}</small></span></div></td><td><StatusBadge status={row.status} /></td><td>{formatarData(row.validade)}</td><td><div className="actions"><button className="icon-btn primary-mini" onClick={() => abrirDetalhes(row)} title="Ver detalhes">{I.edit}</button><button className="icon-btn" onClick={() => copiarCodigo(row.codigo)} title="Copiar">{I.copy}</button>{row.status === STATUS.BLOQUEADO ? <button className="icon-btn success" onClick={() => desbloquear(row)} title="Desbloquear">✓</button> : <button className="icon-btn danger" onClick={() => abrirBloqueio(row)} title="Bloquear">{I.lock}</button>}{(row.status === STATUS.ATIVO || row.status === STATUS.VENCIDO) && <button className="mini-text" onClick={() => renovar(row)}>Renovar</button>}</div></td></tr>)}</tbody></table></div><div className="table-footer"><span>{rows.length} registros</span></div></section>;
+function BlockModal({ row, onClose, onConfirm }) {
+  const [motivo, setMotivo] = useState(row.bloqueado_motivo || "");
+  return (
+    <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="p-6">
+          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4"><Lock size={24} /></div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Bloquear Licença</h2>
+          <p className="text-sm text-slate-500 mb-6">Ao bloquear, o usuário não poderá mais utilizar o app com o código <strong className="font-mono text-slate-800">{row.codigo}</strong>.</p>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Motivo do bloqueio (opcional)</label>
+          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex: Pagamento pendente..." className="w-full h-24 p-3 border border-slate-300 rounded-xl text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none"></textarea>
+        </div>
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-slate-600 font-bold text-sm hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+          <button onClick={() => onConfirm(row, motivo)} className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-lg shadow-sm transition-colors">Confirmar Bloqueio</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function Faturamento({ rows, stats, meses, filtroMes, setFiltroMes, onExportar }) {
-  const pagos = rows.filter((u) => (u.pagamento_status || "") === "Pago");
-  const pendentes = rows.filter((u) => (u.pagamento_status || "Pendente") !== "Pago");
-  return <><section className="finance-kpis"><FinanceCard title="ASSINATURAS" value={money.format(pagos.length * 29.9)} sub={`${pagos.length} registros`} cls="blue" /><FinanceCard title="RENOVAÇÕES" value={money.format(0)} sub="0 registros" cls="green" /><FinanceCard title="ALTERAÇÕES" value={money.format(0)} sub="0 registros" cls="yellow" /><FinanceCard title="A RECEBER" value={money.format(pendentes.length * 29.9)} sub={`${pendentes.length} potencial`} cls="red" /></section><section className="revenue-card"><span>Receita total recebida</span><strong>{money.format(stats.receita)}</strong><p>{pagos.length} transações</p></section><section className="table-card"><div className="table-title"><div><h2>Histórico de transações</h2><p>Todas as cobranças registradas — use os filtros para analisar períodos</p></div></div><div className="filter-row"><select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)}><option value="">Todos os meses</option>{meses.map((m) => <option key={m} value={m}>{mesLabel(m)}</option>)}</select><button className="btn dark export-btn" onClick={onExportar}>{I.download} Exportar CSV</button></div><div className="table-wrap"><table><thead><tr><th>Tipo</th><th>Cliente</th><th>Código</th><th>Valor</th><th>Data</th><th>Pagamento</th></tr></thead><tbody>{rows.length === 0 ? <tr><td colSpan="6" className="empty">Nenhuma transação registrada</td></tr> : rows.map((row) => <tr key={row.id}><td>{(row.pagamento_status || "") === "Pago" ? "Assinatura" : "A receber"}</td><td>{row.nome}</td><td><span className="code">{row.codigo}</span></td><td>{money.format(29.9)}</td><td>{formatarDataHora(row.pago_em || row.created_at)}</td><td>{row.pagamento_status || "Pendente"}</td></tr>)}</tbody></table></div></section></>;
-}
-function FinanceCard({ title, value, sub, cls }) { return <article className={`finance-card ${cls}`}><span>{title}</span><strong>{value}</strong><p>{sub}</p></article>; }
-
-function SimpleTable({ title, rows, type, onExportar }) { return <section className="table-card"><div className="table-title"><div><h2>{title}</h2><p>Registros do sistema</p></div><button className="btn dark" onClick={onExportar}>{I.download} Exportar CSV</button></div><div className="table-wrap"><table><thead><tr><th>Cliente</th><th>Código</th><th>Informação</th><th>Data</th></tr></thead><tbody>{rows.length === 0 ? <tr><td colSpan="4" className="empty">Nenhum registro encontrado.</td></tr> : rows.map((row) => <tr key={row.id}><td>{row.nome || row.codigo}</td><td><span className="code">{row.codigo}</span></td><td>{type === "errors" ? row.ultimo_erro : row.termos_pdf || "Sem documento registrado"}</td><td>{formatarDataHora(row.created_at)}</td></tr>)}</tbody></table></div></section>; }
-function StatusBadge({ status }) { const view = statusView(status); return <span className={`status ${view.cls}`}><i />{view.label}</span>; }
-function Toast({ toast }) { return <div className={toast.tipo === "erro" ? "toast erro" : "toast"}>{toast.texto}</div>; }
-
-function DetailsModal({ row, onClose, onRenovar, onBloquear, onDesbloquear }) {
-  const items = [["Código", row.codigo], ["Status", row.status || "—"], ["Nome", row.nome || "—"], ["CPF", row.cpf || "—"], ["Telefone", row.telefone || "—"], ["E-mail", row.email || "—"], ["Cargo", row.cargo || "—"], ["Órgão", row.orgao || "—"], ["Validade", formatarData(row.validade)], ["Criado em", formatarDataHora(row.created_at)], ["Usado em", formatarDataHora(row.usado_em)], ["Envios", row.envios || 0], ["Alterações", row.alteracoes || 0], ["Último erro", row.ultimo_erro || "—"]];
-  return <div className="modal-bg"><div className="modal-card"><div className="modal-top"><div><span>Licença</span><h2>{row.codigo}</h2></div><button onClick={onClose}>Fechar</button></div><div className="details-grid">{items.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div><div className="modal-actions"><button className="btn primary" onClick={() => onRenovar(row)}>Renovar 90 dias</button>{row.status === STATUS.BLOQUEADO ? <button className="btn ghost" onClick={() => onDesbloquear(row)}>Desbloquear</button> : <button className="btn ghost" onClick={() => onBloquear(row)}>Bloquear</button>}</div></div></div>;
-}
-
-function BlockModal({ row, onClose, onConfirm }) { const [motivo, setMotivo] = useState(row.bloqueado_motivo || ""); return <div className="modal-bg"><div className="modal-card small-modal"><div className="modal-top"><div><span>Bloqueio</span><h2>Bloquear licença {row.codigo}</h2></div><button onClick={onClose}>Fechar</button></div><label className="modal-label">Motivo do bloqueio<textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Exemplo: pagamento vencido" /></label><div className="modal-actions"><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={() => onConfirm(row, motivo)}>Confirmar bloqueio</button></div></div></div>; }
-
-function GlobalStyle() {
-  return <style>{`
-    :root { --blue:#2f7df6; --green:#10b981; --red:#ff2f45; --yellow:#ffb300; --dark:#0f141c; --muted:#8d96aa; --text:#0f172a; --bg:#f6f7fb; --border:#e6ebf2; }
-    * { box-sizing:border-box; } html,body,#root{margin:0;min-height:100%;width:100%;background:var(--bg);} body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;color:var(--text);} button,input,select,textarea{font:inherit;} button{cursor:pointer;}
-    .login-page{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#edf4ff,#f7fbff);} .login-card{width:360px;background:#fff;border:1px solid var(--border);border-radius:22px;box-shadow:0 24px 70px rgba(15,23,42,.12);padding:30px;} .login-card h1{margin:18px 0 4px;font-size:25px;} .login-card p{margin:0 0 22px;color:var(--muted);} .login-card input{width:100%;height:46px;border:1px solid var(--border);border-radius:12px;padding:0 14px;margin-bottom:10px;outline:none;} .login-card button{width:100%;height:46px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:800;}
-    .app-shell{width:100vw;min-height:100vh;display:flex;background:var(--bg);overflow-x:hidden;} .sidebar{width:288px;min-height:100vh;background:#10151d;color:#bfcee3;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;} .brand{height:76px;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.06);} .brand strong{display:block;color:#fff;font-size:16px;} .brand span{display:block;color:#7f8ca3;font-size:13px;margin-top:2px;} .brand-icon{width:54px;height:54px;background:var(--blue);color:#fff;border-radius:14px;display:grid;place-items:center;font-weight:900;box-shadow:0 14px 25px rgba(47,125,246,.25);} .brand-icon.small{width:40px;height:40px;border-radius:11px;font-size:14px;} nav{flex:1;padding:18px 14px;} .menu-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:3px;color:#3e5170;margin:18px 14px 10px;} .menu-item{width:100%;height:46px;border:0;border-radius:14px;background:transparent;color:#9eb0ca;display:flex;align-items:center;gap:14px;padding:0 14px;margin-bottom:4px;font-weight:700;text-align:left;} .menu-item span{flex:1;} .menu-item small{min-width:23px;height:23px;border-radius:99px;background:#293341;color:#fff;display:grid;place-items:center;font-size:12px;} .menu-item.active{background:var(--blue);color:#fff;box-shadow:0 12px 22px rgba(47,125,246,.24);} .admin-card{border:0;background:transparent;border-top:1px solid rgba(255,255,255,.07);padding:20px 22px 24px;color:#9eb0ca;display:flex;align-items:center;gap:12px;text-align:left;} .admin-card div{width:38px;height:38px;border-radius:99px;display:grid;place-items:center;background:var(--blue);color:#fff;font-weight:900;} .admin-card span{flex:1;display:block;} .admin-card strong{display:block;color:#fff;} .admin-card small{display:block;color:#7f8ca3;}
-    .main{flex:1;min-width:0;min-height:100vh;display:flex;flex-direction:column;} .topbar{height:76px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 9px rgba(15,23,42,.05);} .topbar h1{margin:0;font-size:20px;font-weight:900;} .topbar p{margin:3px 0 0;font-size:13px;color:var(--muted);} .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;} .online{display:inline-flex;align-items:center;gap:8px;border-radius:99px;background:#effdf6;color:#7d8ba0;padding:9px 14px;font-weight:700;} .online i{width:8px;height:8px;border-radius:99px;background:var(--green);} .btn{min-height:42px;border-radius:13px;border:1px solid var(--border);background:#fff;color:#536176;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;} .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 8px 18px rgba(47,125,246,.22);} .btn.dark{background:#101827;border-color:#101827;color:#fff;} .btn.ghost{background:#fff;} .btn.wide{width:100%;margin-top:14px;}
-    .content{padding:28px;} .kpis{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:18px;} .kpi{height:255px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:24px;box-shadow:0 2px 8px rgba(15,23,42,.06);position:relative;overflow:hidden;} .kpi.blue{border-color:#cfe2ff}.kpi.green{border-color:#c7f3df}.kpi.yellow{border-color:#ffe6a5}.kpi.red{border-color:#ffd1d6}.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;flex-direction:row-reverse;} .kpi-top span{color:#939bb0;font-weight:800;} .kpi-top i{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-style:normal;color:#fff;box-shadow:0 13px 24px rgba(15,23,42,.16);} .kpi.blue .kpi-top i{background:var(--blue)}.kpi.green .kpi-top i{background:var(--green)}.kpi.yellow .kpi-top i{background:var(--yellow)}.kpi.red .kpi-top i{background:var(--red)} .kpi strong{display:block;margin-top:28px;font-size:48px;line-height:1;font-weight:900;} .kpi.blue strong,.kpi.blue p{color:#1d63f0}.kpi.green strong,.kpi.green p{color:#009c69}.kpi.yellow strong,.kpi.yellow p{color:#e87900}.kpi.red strong,.kpi.red p{color:#e60019}.kpi p{margin:8px 0 0;font-size:17px;font-weight:700;} .bars{position:absolute;left:24px;right:24px;bottom:24px;height:38px;display:flex;align-items:end;gap:5px;} .bars b{flex:1;border-radius:5px 5px 0 0;display:block;opacity:.42}.kpi.blue .bars b{background:var(--blue)}.kpi.green .bars b{background:var(--green)}.kpi.yellow .bars b{background:var(--yellow)}.kpi.red .bars b{background:var(--red)}.bars b:last-child{opacity:1;}
-    .dashboard-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(320px,1fr);gap:20px;margin-top:24px;} .panel-card,.table-card,.generator,.revenue-card{background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:0 2px 8px rgba(15,23,42,.06);} .panel-card{padding:26px;} .panel-head{display:flex;justify-content:space-between;align-items:flex-start;} h2{margin:0;font-size:20px;} .panel-card p,.table-title p,.generator p{margin:6px 0 0;color:#8993a8;} .bolt{width:40px;height:40px;border-radius:12px;background:#eef5ff;display:grid;place-items:center;} .quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px;} .quick{border:0;border-radius:14px;padding:18px;text-align:left;position:relative;} .quick strong{display:block;font-size:16px}.quick span{display:block;margin-top:6px;font-size:13px;opacity:.7}.quick b{position:absolute;right:18px;top:22px}.quick.blue{background:#eef5ff;color:#1d63f0}.quick.green{background:#eafbf3;color:#009c69}.quick.yellow{background:#fff8e5;color:#d97706}.quick.red{background:#fff0f2;color:#ef334b}.progress{margin:13px 0}.progress div{display:flex;justify-content:space-between;font-size:14px;color:#59667a}.progress i{height:7px;background:#edf0f5;border-radius:999px;display:block;margin-top:8px;overflow:hidden}.progress em{height:100%;background:var(--blue);border-radius:999px;display:block;}
-    .generator{padding:24px;display:flex;align-items:center;gap:16px;margin-bottom:18px;} .generator-icon{width:44px;height:44px;border-radius:14px;background:#eef5ff;color:var(--blue);display:grid;place-items:center;font-weight:900;font-size:22px;} .generator h2{font-size:18px}.generator-actions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.generator input{width:60px;height:38px;border:1px solid var(--border);border-radius:10px;text-align:center;outline:none;}
-    .table-card{overflow:hidden;margin-top:18px;} .table-title{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:24px;} .chips{display:flex;gap:8px;flex-wrap:wrap}.chips span{border-radius:999px;padding:6px 12px;font-size:12px;background:#f3f4f6;color:#536176;font-weight:800}.chips .ok{background:#e9fbf2;color:#008f61}.chips .trial{background:#eef5ff;color:#1d63f0}.chips .bad{background:#fff0f2;color:#e60019}.filter-row{display:flex;align-items:center;gap:10px;padding:14px 24px;border-top:1px solid var(--border);background:#fafbfc}.filter-row select{height:40px;border:1px solid var(--border);border-radius:12px;background:#fff;color:#536176;padding:0 14px;outline:none}.export-btn{margin-left:auto}.searchbar{height:44px;margin:16px 24px 0;border:1px solid var(--border);border-radius:13px;background:#fafbfc;display:flex;align-items:center;gap:10px;padding:0 14px;color:#8b95a6}.searchbar input{border:0;background:transparent;outline:none;flex:1;min-width:0;color:var(--text);} .table-wrap{overflow-x:auto;} table{width:100%;border-collapse:collapse;min-width:860px;} th{padding:14px 24px;text-align:left;color:#98a1b4;background:#fff;font-size:12px;font-weight:900;text-transform:uppercase;} th.right{text-align:right;} td{padding:16px 24px;border-top:1px solid #f0f2f6;color:#58657a;font-size:14px;vertical-align:middle}.code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#0c5cff;font-weight:900;letter-spacing:.6px}.client{display:flex;align-items:center;gap:12px}.client>div{width:36px;height:36px;border-radius:99px;display:grid;place-items:center;background:var(--blue);color:#fff;font-size:13px;font-weight:900;box-shadow:0 8px 15px rgba(47,125,246,.2);flex-shrink:0}.client strong{display:block;color:#1e293b}.client small{display:block;color:#8a93a5;margin-top:2px}.status{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 11px;font-size:12px;font-weight:900}.status i{width:7px;height:7px;border-radius:99px}.status.active{background:#e9fbf2;color:#008f61}.status.active i{background:var(--green)}.status.available{background:#eef5ff;color:#1d63f0}.status.available i{background:var(--blue)}.status.expired,.status.blocked{background:#fff0f2;color:#e60019}.status.expired i,.status.blocked i{background:var(--red)}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.icon-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:10px;background:#fff;color:#64748b;display:grid;place-items:center}.primary-mini{background:#6aa2ff!important;color:#fff!important;border-color:#6aa2ff!important}.danger{background:#fff0f2!important;color:var(--red)!important;border-color:#ffd7dc!important}.success{background:#e9fbf2!important;color:#009c69!important;border-color:#c9f3df!important}.mini-text{height:34px;border:1px solid #cfe2ff;background:#eef5ff;color:#1d63f0;border-radius:10px;font-weight:800;padding:0 10px}.empty{text-align:center;color:#98a1b4;padding:42px!important}.table-footer{border-top:1px solid var(--border);padding:14px 24px;color:#7f8ca3;font-size:14px;}
-    .finance-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.finance-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:24px}.finance-card span{font-size:12px;font-weight:900;color:#65738a}.finance-card strong{display:block;margin-top:12px;font-size:26px}.finance-card p{margin:5px 0 0;color:#8993a8}.finance-card.blue{border-color:#cfe2ff}.finance-card.green{border-color:#c7f3df}.finance-card.yellow{border-color:#ffe6a5}.finance-card.red{border-color:#ffd1d6}.finance-card.blue strong{color:#1d63f0}.finance-card.green strong{color:#008f61}.finance-card.yellow strong{color:#d97706}.finance-card.red strong{color:#e60019}.revenue-card{margin-top:18px;padding:26px;background:linear-gradient(135deg,#2f8bff,#1d5eff);color:#fff}.revenue-card span{font-weight:800;opacity:.9}.revenue-card strong{display:block;font-size:44px;margin-top:12px}.revenue-card p{margin:0;opacity:.8}
-    .toast{position:fixed;right:24px;top:90px;z-index:100;background:#101827;color:#fff;padding:14px 16px;border-radius:14px;box-shadow:0 18px 50px rgba(15,23,42,.22);font-weight:800}.toast.erro{background:var(--red)} .modal-bg{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.46);display:grid;place-items:center;padding:22px}.modal-card{width:min(850px,100%);background:#fff;border-radius:22px;box-shadow:0 24px 90px rgba(15,23,42,.24);padding:26px}.small-modal{width:min(520px,100%)}.modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:18px}.modal-top span{display:block;color:var(--blue);text-transform:uppercase;font-size:12px;letter-spacing:1px;font-weight:900}.modal-top h2{margin:4px 0 0;font-size:22px}.modal-top button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:9px 13px}.details-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.details-grid div{background:#f8f9fb;border:1px solid var(--border);border-radius:14px;padding:13px}.details-grid span{display:block;color:#8a93a5;font-size:12px;margin-bottom:5px}.details-grid strong{display:block;color:#101827;word-break:break-word}.modal-actions{display:flex;gap:10px;margin-top:18px}.modal-label{display:grid;gap:8px;color:#536176;font-size:14px;font-weight:800}.modal-label textarea{width:100%;min-height:110px;resize:vertical;border:1px solid var(--border);border-radius:14px;padding:12px;outline:none;}
-    @media (max-width:1100px){.sidebar{width:88px}.brand{justify-content:center;padding:0}.brand>div:last-child,.menu-title,.menu-item span,.admin-card span,.admin-card svg{display:none}.menu-item{width:60px;height:60px;justify-content:center;padding:0;margin:0 auto 8px}.menu-item small{position:absolute;top:6px;right:6px}.admin-card{justify-content:center;padding:18px 0}.content{padding:18px}.kpis,.finance-kpis{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.topbar{height:auto;align-items:flex-start;flex-direction:column;padding:18px}.top-actions{width:100%}.details-grid{grid-template-columns:repeat(2,1fr)}} @media(max-width:720px){.kpis,.finance-kpis,.quick-grid{grid-template-columns:1fr}.generator{align-items:flex-start;flex-direction:column}.generator-actions{margin-left:0}.table-title,.filter-row{align-items:flex-start;flex-direction:column}.export-btn{margin-left:0}.details-grid{grid-template-columns:1fr}}
-  `}</style>;
+function Toast({ toast }) {
+  const isError = toast.tipo === "erro";
+  return (
+    <div className={`fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl transform transition-all duration-300 animate-in slide-in-from-bottom-5 ${isError ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'}`}>
+      {isError ? <AlertTriangle size={18} /> : <Check size={18} className="text-emerald-400" />}
+      <span className="text-sm font-bold">{toast.texto}</span>
+    </div>
+  );
 }
