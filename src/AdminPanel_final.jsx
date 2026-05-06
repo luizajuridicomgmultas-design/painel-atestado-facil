@@ -3,13 +3,13 @@ import {
   LayoutDashboard, KeyRound, Users, CreditCard, FileText, AlertTriangle, 
   RefreshCw, Plus, Download, Search, Edit2, Copy, Lock, Unlock, LogOut, 
   Trash2, X, Check, TrendingUp, ShieldAlert, ShieldCheck, UploadCloud, 
-  ExternalLink, Paperclip, Filter, History, AlignLeft, Calendar
+  ExternalLink, Paperclip, Filter, History, AlignLeft, Calendar, Menu, Smartphone
 } from "lucide-react";
 
 import { supabase } from "./supabase";
 
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "1234";
+const ADMIN_USER = "atestadofacil";
+const ADMIN_PASS = "Admin@2026";
 
 const STATUS = {
   DISPONIVEL: "Disponível",
@@ -91,6 +91,8 @@ export default function AdminPanel() {
   const [toast, setToast] = useState(null);
   const [modalDetalhes, setModalDetalhes] = useState(null);
   const [modalBloqueio, setModalBloqueio] = useState(null);
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
 
   const aviso = (texto, tipo = "ok") => {
     setToast({ texto, tipo });
@@ -98,7 +100,26 @@ export default function AdminPanel() {
   };
 
   useEffect(() => { if (logado) carregar(); }, [logado]);
-  useEffect(() => { setBusca(""); setFiltroMes(""); setFiltroStatus(""); setFiltroTipo(""); }, [aba]);
+  useEffect(() => { setBusca(""); setFiltroMes(""); setFiltroStatus(""); setFiltroTipo(""); setMenuMobileAberto(false); }, [aba]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function instalarPWA() {
+    if (!installPrompt) {
+      aviso("No celular, abra pelo navegador e toque em Compartilhar/Adicionar à tela inicial.");
+      return;
+    }
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => null);
+    setInstallPrompt(null);
+  }
 
   async function carregar() {
     setCarregando(true);
@@ -361,7 +382,8 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 sticky top-0 h-screen border-r border-slate-800">
+      {menuMobileAberto && <div className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden" onClick={() => setMenuMobileAberto(false)} />}
+      <aside className={`${menuMobileAberto ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:sticky z-40 top-0 left-0 w-72 sm:w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 h-screen border-r border-slate-800 transition-transform duration-300`}>
         <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-800/50">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-600/20">
             <ShieldCheck size={22} />
@@ -403,23 +425,31 @@ export default function AdminPanel() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">{aba}</h1>
-            <p className="text-sm text-slate-500 font-medium">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })} · {carregando ? "Sincronizando..." : "Atualizado agora"}</p>
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden lg:ml-0">
+        <header className="min-h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between gap-3 px-4 lg:px-8 sticky top-0 z-20">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => setMenuMobileAberto(true)} className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+              <Menu size={22} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl lg:text-2xl font-bold text-slate-800 flex items-center gap-2 truncate">{aba}</h1>
+              <p className="hidden sm:block text-sm text-slate-500 font-medium truncate">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })} · {carregando ? "Sincronizando..." : "Atualizado agora"}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-100">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sistema Online
             </div>
-            <button onClick={gerarNovoCodigo} disabled={gerando} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
-              <Plus size={16} /> {gerando ? "Gerando..." : "Nova Licença"}
+            <button onClick={instalarPWA} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
+              <Smartphone size={16} /> <span className="hidden sm:inline">Instalar</span>
+            </button>
+            <button onClick={gerarNovoCodigo} disabled={gerando} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all">
+              <Plus size={16} /> <span className="hidden sm:inline">{gerando ? "Gerando..." : "Nova Licença"}</span><span className="sm:hidden">Nova</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             
             {aba === "Dashboard" && (
@@ -460,7 +490,7 @@ export default function AdminPanel() {
 
             {aba === "Licenças" && (
               <>
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center gap-6 justify-between">
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 lg:p-6 shadow-sm flex flex-col md:flex-row md:items-center gap-6 justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600"><KeyRound size={24} /></div>
                     <div>
@@ -468,7 +498,7 @@ export default function AdminPanel() {
                       <p className="text-sm text-slate-500">Crie múltiplos códigos de acesso de uma só vez</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className="text-sm font-semibold text-slate-600">Quantidade:</span>
                     <input type="number" min="1" max="100" value={lote} onChange={(e) => setLote(e.target.value)} className="w-20 h-10 border border-slate-200 rounded-lg text-center font-bold outline-none focus:border-blue-500" />
                     <button onClick={gerarLote} disabled={gerando} className="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm transition-colors">
@@ -590,32 +620,32 @@ function FileUploader({ transacaoId, comprovanteUrl, onUpload }) {
 function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes, setFiltroMes, filtroStatus, setFiltroStatus, filtroTipo, setFiltroTipo, actions, simple, mode, onExportar }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between gap-4">
+      <div className="p-4 lg:p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800">{title}</h2>
           {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
         </div>
         
         {/* Nova Área de Filtros Aprimorada */}
-        <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100 w-full lg:w-auto">
           <div className="flex items-center gap-2 px-2 text-slate-400">
             <Filter size={16} />
           </div>
           
-          <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+          <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)} className="h-10 sm:h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer w-full sm:w-auto">
             <option value="">Todos os meses</option>
             {meses?.map(m => <option key={m} value={m}>{mesLabel(m)}</option>)}
           </select>
           
           {setFiltroStatus && (
-            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} className="h-10 sm:h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer w-full sm:w-auto">
               <option value="">Status: Todos</option>
               {Object.values(STATUS).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           )}
 
           {mode === 'faturamento' && setFiltroTipo && (
-            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="h-10 sm:h-9 px-3 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 outline-none focus:border-blue-500 bg-white shadow-sm cursor-pointer w-full sm:w-auto">
               <option value="">Tipo: Todos</option>
               <option value="Assinatura">Assinatura</option>
               <option value="Alteração">Alteração</option>
@@ -625,21 +655,21 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
 
           <div className="w-px h-6 bg-slate-200 mx-1"></div>
 
-          <button onClick={onExportar} className="h-9 px-4 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+          <button onClick={onExportar} className="h-10 sm:h-9 px-4 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-sm w-full sm:w-auto">
             <Download size={14} /> Exportar CSV
           </button>
         </div>
       </div>
 
-      <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100">
+      <div className="px-4 lg:px-6 py-4 bg-slate-50/50 border-b border-slate-100">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por código, nome, e-mail..." className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto -mx-1 sm:mx-0">
+        <table className="w-full min-w-[760px] text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 text-xs uppercase tracking-wider font-bold text-slate-500 border-b border-slate-200">
               {simple ? (
@@ -831,14 +861,14 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
               </div>
 
               {isEditing ? (
-                <div className="grid grid-cols-2 gap-4 mb-6 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">Nome Completo</label><input value={formData.nome} onChange={e=>setFormData({...formData, nome: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">E-mail</label><input value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">Telefone</label><input value={formData.telefone} onChange={e=>setFormData({...formData, telefone: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">CPF</label><input value={formData.cpf} onChange={e=>setFormData({...formData, cpf: e.target.value})} className="w-full h-9 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Nome</span><strong className="text-sm text-slate-800">{row.nome || "—"}</strong></div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">E-mail</span><strong className="text-sm text-slate-800">{row.email || "—"}</strong></div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Telefone</span><strong className="text-sm text-slate-800">{row.telefone || "—"}</strong></div>
@@ -871,7 +901,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
               </div>
 
               <h3 className="text-sm font-bold text-slate-800 mb-4 border-t border-slate-100 pt-6">Dados Técnicos da Licença</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statsList.map((s, i) => (
                   <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <span className="block text-xs font-bold text-slate-500 mb-0.5">{s.label}</span>
@@ -916,9 +946,9 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
         </div>
         
         {/* Rodapé de Ações Rápidas */}
-        <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-between items-center flex-wrap gap-3">
+        <div className="p-4 lg:p-5 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div className="text-xs text-slate-500 font-semibold">Ações Administrativas:</div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {row.status === STATUS.BLOQUEADO ? (
               <button onClick={() => onDesbloquear(row)} className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors">Desbloquear Acesso</button>
             ) : (
