@@ -269,15 +269,19 @@ export default function AdminPanel() {
     });
 
     return {
-  total: usuarios.length,
-  ativo,
-  livre,
-  vencido,
-  bloqueado,
-  clientes,
-  erros,
-  totalEnvios,
-  totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
+      total: usuarios.length,
+      ativo,
+      livre,
+      vencido,
+      bloqueado,
+      clientes,
+      erros,
+      totalEnvios,
+      totalReceita,
+      valAssinaturas,
+      valRenovacoes,
+      valAlteracoes,
+    };
   }, [usuarios, transacoes]);
 
   const meses = useMemo(() => {
