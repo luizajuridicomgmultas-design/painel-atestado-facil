@@ -268,7 +268,7 @@ export default function AdminPanel() {
       if (t.tipo === "Alteração") valAlteracoes += Number(t.valor);
     });
 
-    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
+    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, totalEnvios, totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
   }, [usuarios, transacoes]);
 
   const meses = useMemo(() => {
@@ -414,7 +414,7 @@ export default function AdminPanel() {
                   <Kpi title="Total de Licenças" value={stats.total} sub={`${stats.livre} disponíveis`} icon={KeyRound} color="blue" />
                   <Kpi title="Licenças Ativas" value={stats.ativo} sub="Em uso no momento" icon={Users} color="emerald" />
                   <Kpi title="Receita (Pago)" value={money.format(stats.totalReceita)} sub="Faturamento total" icon={CreditCard} color="amber" />
-                  <Kpi title="Atenção Necessária" value={stats.bloqueado + stats.vencido} sub="Bloqueados ou Vencidos" icon={ShieldAlert} color="red" />
+                  <Kpi title="Formulários Enviados" value={stats.totalEnvios} sub="Total de usos do app" icon={FileText} color="red" />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -641,6 +641,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                   <th className="px-6 py-4">Código</th>
                   <th className="px-6 py-4">Cliente</th>
                   <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Usos</th>
                   <th className="px-6 py-4">Validade</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </>
@@ -711,6 +712,11 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                         {row.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center justify-center min-w-10 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-sm font-black border border-indigo-100">
+                        {Number(row.total_envios || 0)}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatarData(row.validade)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-50 md:group-hover:opacity-100 transition-opacity">
@@ -764,6 +770,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
     { label: "Validade", value: formatarData(row.validade) },
     { label: "Criado em", value: formatarDataHora(row.created_at) },
     { label: "Usado em", value: formatarDataHora(row.usado_em) },
+    { label: "Formulários enviados", value: Number(row.total_envios || 0) },
   ];
 
   return (
