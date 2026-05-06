@@ -268,7 +268,16 @@ export default function AdminPanel() {
       if (t.tipo === "Alteração") valAlteracoes += Number(t.valor);
     });
 
-    return { total: usuarios.length, ativo, livre, vencido, bloqueado, clientes, erros, totalEnvios, totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
+    return {
+  total: usuarios.length,
+  ativo,
+  livre,
+  vencido,
+  bloqueado,
+  clientes,
+  erros,
+  totalEnvios,
+  totalReceita, valAssinaturas, valRenovacoes, valAlteracoes };
   }, [usuarios, transacoes]);
 
   const meses = useMemo(() => {
