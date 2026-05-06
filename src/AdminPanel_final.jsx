@@ -260,7 +260,6 @@ export default function AdminPanel() {
     const clientes = usuarios.filter(u => u.nome).length;
     const erros = usuarios.filter(u => u.ultimo_erro).length;
     const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0), 0);
-const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0), 0);
     
     let totalReceita = 0, valAssinaturas = 0, valRenovacoes = 0, valAlteracoes = 0;
     transacoes.forEach(t => {
