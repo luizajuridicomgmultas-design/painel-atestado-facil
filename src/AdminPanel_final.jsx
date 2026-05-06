@@ -259,6 +259,7 @@ export default function AdminPanel() {
     const bloqueado = usuarios.filter(u => u.status === STATUS.BLOQUEADO).length;
     const clientes = usuarios.filter(u => u.nome).length;
     const erros = usuarios.filter(u => u.ultimo_erro).length;
+    const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0), 0);
 const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0), 0);
     
     let totalReceita = 0, valAssinaturas = 0, valRenovacoes = 0, valAlteracoes = 0;
@@ -428,7 +429,7 @@ const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0
                   <Kpi title="Total de Licenças" value={stats.total} sub={`${stats.livre} disponíveis`} icon={KeyRound} color="blue" />
                   <Kpi title="Licenças Ativas" value={stats.ativo} sub="Em uso no momento" icon={Users} color="emerald" />
                   <Kpi title="Receita (Pago)" value={money.format(stats.totalReceita)} sub="Faturamento total" icon={CreditCard} color="amber" />
-                  <Kpi title="Formulários Enviados" value={stats.totalEnvios} sub="Total de usos do app" icon={FileText} color="red" />
+                  <Kpi title="Formulários Enviados" value={stats.totalEnvios || 0} sub="Total de usos do app" icon={FileText} color="red" />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
