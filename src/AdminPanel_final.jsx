@@ -919,22 +919,21 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                           const cliente = actions.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || ""));
                           const gratuito = cliente ? isGratuito(cliente) : false;
                           return (
-                            <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex flex-wrap items-center justify-end gap-3">
+                              <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
                               <button
                                 type="button"
                                 onClick={() => actions.alternarGratuitoPorLancamento?.(row)}
                                 disabled={!cliente}
-                                className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all ${cliente ? "bg-white hover:bg-slate-50 border-slate-200" : "bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed"}`}
-                                title={gratuito ? "Cliente marcado como de graça" : "Marcar este cliente como de graça"}
+                                className={`rounded-xl transition-all ${cliente ? "hover:scale-[1.01]" : "opacity-50 cursor-not-allowed"}`}
+                                title={gratuito ? "Gratuito ativado" : "Cobrança normal"}
                               >
-                                <span className="text-[11px] font-black text-slate-600 uppercase whitespace-nowrap">De graça</span>
                                 <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${gratuito ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
                                   <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${gratuito ? "opacity-100" : "opacity-0"}`}>ON</span>
                                   <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${gratuito ? "opacity-0" : "opacity-100"}`}>OFF</span>
                                   <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${gratuito ? "translate-x-8" : "translate-x-0"}`} />
                                 </span>
                               </button>
-                              <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
                             </div>
                           );
                         })()}
@@ -1174,18 +1173,6 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
             ) : (
               <button onClick={() => onBloquear(row)} className="px-4 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-bold transition-colors">Bloquear Licença</button>
             )}
-            <button
-              onClick={() => onAlternarGratuito(row)}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-              title={isGratuito(row) ? "Cliente de graça: não entra no faturamento" : "Clique para marcar como de graça"}
-            >
-              <span className="text-xs font-black text-slate-600 uppercase whitespace-nowrap">De graça</span>
-              <span className={`relative inline-flex h-9 w-20 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isGratuito(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
-                <span className={`absolute left-4 text-xs font-black text-white transition-opacity ${isGratuito(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
-                <span className={`absolute right-3 text-[10px] font-black text-slate-500 transition-opacity ${isGratuito(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
-                <span className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-300 ${isGratuito(row) ? "translate-x-11" : "translate-x-0"}`} />
-              </span>
-            </button>
             <button onClick={() => onRenovar(row)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex flex-col items-center justify-center">
               <span>Renovar +90 Dias</span>
               <span className="text-[10px] font-normal opacity-90 mt-0.5">{isGratuito(row) ? "(Sem faturar)" : "(Lançar R$ 29,90)"}</span>
