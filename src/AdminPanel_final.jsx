@@ -28,10 +28,20 @@ const VALORES_FATURAMENTO = {
 
 const getRegraRepasse = (clientesAtivos) => {
   const total = Number(clientesAtivos || 0);
-  if (total >= 50) return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ clientes ativos" };
-  if (total >= 25) return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ clientes ativos" };
-  if (total >= 12) return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "12+ clientes ativos" };
-  return { assinatura: 0, alteracao: 0, renovacao: 0, faixa: "Abaixo de 12 clientes ativos" };
+
+  // Regras do repasse:
+  // Até 24 clientes ativos: R$10 por assinatura nova.
+  // A partir de 25 clientes ativos: R$12 por assinatura nova + R$5 por alteração.
+  // A partir de 50 clientes ativos: mantém assinatura/alteração e adiciona R$8 por renovação.
+  if (total >= 50) {
+    return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ ativos: assinatura, alteração e renovação" };
+  }
+
+  if (total >= 25) {
+    return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ ativos: assinatura e alteração" };
+  }
+
+  return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "Até 24 ativos: R$10 por assinatura" };
 };
 
 // Utilitários
@@ -166,8 +176,18 @@ export default function AdminPanel() {
   }
 
   // --- FUNÇÕES DE REGISTRO DE HISTÓRICO E FATURAMENTO ---
-  async function registrarHistorico(usuario_id, acao, detalhes) {
-    const { error } = await supabase.from("historico").insert([{ usuario_id, acao, detalhes, data: new Date().toISOString() }]);
+  async function registrarHistorico(usuarioIdentificador, acao, detalhes) {
+    // A coluna usuario_id da tabela historico está como bigint no Supabase,
+    // mas o id da tabela usuarios é UUID. Para não quebrar o painel, não enviamos usuario_id.
+    // O vínculo fica registrado no texto do histórico.
+    const detalhesComReferencia = usuarioIdentificador
+      ? `${detalhes} | Ref: ${usuarioIdentificador}`
+      : detalhes;
+
+    const { error } = await supabase
+      .from("historico")
+      .insert([{ acao, detalhes: detalhesComReferencia, data: new Date().toISOString() }]);
+
     if (error) console.warn("Histórico não registrado:", error);
   }
 
@@ -679,7 +699,7 @@ export default function AdminPanel() {
       </main>
 
       {toast && <Toast toast={toast} />}
-      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id)} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
       {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
     </div>
   );
