@@ -167,12 +167,12 @@ export default function AdminPanel() {
 
   // --- FUNÇÕES DE REGISTRO DE HISTÓRICO E FATURAMENTO ---
   async function registrarHistorico(usuario_id, acao, detalhes) {
-    await supabase.from("historico").insert([{ usuario_id, acao, detalhes, data: new Date().toISOString() }]);
+    const { error } = await supabase.from("historico").insert([{ usuario_id, acao, detalhes, data: new Date().toISOString() }]);
+    if (error) console.warn("Histórico não registrado:", error);
   }
 
   async function registrarFaturamento(row, tipo, valor, data = new Date().toISOString()) {
     const { error } = await supabase.from("faturamento").insert([{
-      usuario_id: row.id,
       codigo: row.codigo,
       nome: row.nome || "Cliente sem nome",
       tipo,
@@ -192,12 +192,6 @@ export default function AdminPanel() {
   async function sincronizarAssinaturasAutomaticas(listaUsuarios, listaTransacoes) {
     const transacoesAtuais = listaTransacoes || [];
 
-    const jaFaturadosPorUsuario = new Set(
-      transacoesAtuais
-        .filter(t => t.tipo === "Assinatura" && t.usuario_id)
-        .map(t => String(t.usuario_id))
-    );
-
     const jaFaturadosPorCodigo = new Set(
       transacoesAtuais
         .filter(t => t.tipo === "Assinatura" && t.codigo)
@@ -209,7 +203,6 @@ export default function AdminPanel() {
       u.codigo &&
       u.nome &&
       u.status === STATUS.ATIVO &&
-      !jaFaturadosPorUsuario.has(String(u.id)) &&
       !jaFaturadosPorCodigo.has(String(u.codigo))
     );
 
@@ -220,7 +213,6 @@ export default function AdminPanel() {
 
     for (const u of usuariosParaFaturar) {
       const lancamento = {
-        usuario_id: u.id,
         codigo: u.codigo,
         nome: u.nome,
         tipo: "Assinatura",
@@ -228,8 +220,9 @@ export default function AdminPanel() {
         data: u.usado_em || u.created_at || new Date().toISOString(),
       };
 
-      // Sem .select() aqui para evitar erro 400 quando a tabela permite inserir,
-      // mas não permite retornar o registro por política/estrutura do Supabase.
+      // Sem usuario_id: na sua tabela faturamento esse campo está como bigint,
+      // mas o id de usuarios é UUID. Por isso o Supabase retornava erro 22P02.
+      // Usamos o codigo como vínculo para evitar quebrar o insert.
       const { error } = await supabase.from("faturamento").insert([lancamento]);
 
       if (error) {
