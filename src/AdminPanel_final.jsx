@@ -26,12 +26,15 @@ const VALORES_FATURAMENTO = {
   Alteração: 5.00,
 };
 
+const isTransacaoPaga = (transacao) => {
+  return transacao?.pago === true || String(transacao?.pago).toLowerCase() === "true";
+};
+
 const getRegraRepasse = (clientesAtivos) => {
   const total = Number(clientesAtivos || 0);
-  if (total >= 50) return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ clientes ativos" };
-  if (total >= 25) return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ clientes ativos" };
-  if (total >= 12) return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "12+ clientes ativos" };
-  return { assinatura: 0, alteracao: 0, renovacao: 0, faixa: "Abaixo de 12 clientes ativos" };
+  if (total >= 50) return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ ativos: R$12 assinatura, R$5 alteração e R$8 renovação" };
+  if (total >= 25) return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ ativos: R$12 assinatura e R$5 alteração" };
+  return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "Até 24 ativos: R$10 por assinatura" };
 };
 
 // Utilitários
