@@ -190,43 +190,66 @@ export default function AdminPanel() {
   }
 
   async function sincronizarAssinaturasAutomaticas(listaUsuarios, listaTransacoes) {
-    const jaFaturados = new Set(
-      (listaTransacoes || [])
+    const transacoesAtuais = listaTransacoes || [];
+
+    const jaFaturadosPorUsuario = new Set(
+      transacoesAtuais
         .filter(t => t.tipo === "Assinatura" && t.usuario_id)
         .map(t => String(t.usuario_id))
     );
 
-    const usuariosParaFaturar = (listaUsuarios || []).filter(u =>
-      u.id &&
-      u.nome &&
-      u.status === STATUS.ATIVO &&
-      !jaFaturados.has(String(u.id))
+    const jaFaturadosPorCodigo = new Set(
+      transacoesAtuais
+        .filter(t => t.tipo === "Assinatura" && t.codigo)
+        .map(t => String(t.codigo))
     );
 
-    if (!usuariosParaFaturar.length) return listaTransacoes || [];
+    const usuariosParaFaturar = (listaUsuarios || []).filter(u =>
+      u.id &&
+      u.codigo &&
+      u.nome &&
+      u.status === STATUS.ATIVO &&
+      !jaFaturadosPorUsuario.has(String(u.id)) &&
+      !jaFaturadosPorCodigo.has(String(u.codigo))
+    );
 
-    const novosLancamentos = usuariosParaFaturar.map(u => ({
-      usuario_id: u.id,
-      codigo: u.codigo,
-      nome: u.nome,
-      tipo: "Assinatura",
-      valor: VALORES_FATURAMENTO.Assinatura,
-      data: u.usado_em || u.created_at || new Date().toISOString(),
-    }));
+    if (!usuariosParaFaturar.length) return transacoesAtuais;
 
-    const { data, error } = await supabase
-      .from("faturamento")
-      .insert(novosLancamentos)
-      .select("*");
+    const novosLancamentos = [];
+    const erros = [];
 
-    if (error) {
-      console.error("Erro ao sincronizar assinaturas:", error);
-      aviso("Algumas assinaturas não foram lançadas no faturamento.", "erro");
-      return listaTransacoes || [];
+    for (const u of usuariosParaFaturar) {
+      const lancamento = {
+        usuario_id: u.id,
+        codigo: u.codigo,
+        nome: u.nome,
+        tipo: "Assinatura",
+        valor: VALORES_FATURAMENTO.Assinatura,
+        data: u.usado_em || u.created_at || new Date().toISOString(),
+      };
+
+      // Sem .select() aqui para evitar erro 400 quando a tabela permite inserir,
+      // mas não permite retornar o registro por política/estrutura do Supabase.
+      const { error } = await supabase.from("faturamento").insert([lancamento]);
+
+      if (error) {
+        console.error("Erro ao sincronizar assinatura:", { usuario: u, lancamento, error });
+        erros.push({ usuario: u, error });
+      } else {
+        novosLancamentos.push({ ...lancamento, id: `local-${u.id}-${Date.now()}` });
+        await registrarHistorico(u.id, "Assinatura", "Cliente ativo sincronizado no faturamento. Faturado R$ 29,90.");
+      }
     }
 
-    aviso(`${novosLancamentos.length} assinatura(s) sincronizada(s) no faturamento.`);
-    return [...(data || []), ...(listaTransacoes || [])];
+    if (erros.length) {
+      aviso(`${erros.length} assinatura(s) não foram lançadas. Veja o console.`, "erro");
+    }
+
+    if (novosLancamentos.length) {
+      aviso(`${novosLancamentos.length} assinatura(s) sincronizada(s) no faturamento.`);
+    }
+
+    return [...novosLancamentos, ...transacoesAtuais];
   }
 
   const entrar = (e) => {
