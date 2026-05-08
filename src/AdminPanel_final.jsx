@@ -45,6 +45,7 @@ const getRegraRepasse = (clientesAtivos) => {
 };
 
 const isGratuito = (row) => String(row?.pagamento_status || row?.pagamento || "").trim().toLowerCase() === "gratuito";
+const isTransacaoPaga = (row) => row?.pago === true || String(row?.pagamento_status || row?.status_pagamento || "").trim().toLowerCase() === "pago";
 
 // Utilitários
 const gerarCodigo = () => String(Math.floor(10000 + Math.random() * 90000));
@@ -194,17 +195,13 @@ export default function AdminPanel() {
   }
 
   async function registrarFaturamento(row, tipo, valor, data = new Date().toISOString()) {
-    if (isGratuito(row)) {
-      await registrarHistorico(row.id || row.codigo, tipo, `${tipo} não lançado no faturamento porque o cliente está marcado como gratuito.`);
-      return "gratuito";
-    }
-
     const { error } = await supabase.from("faturamento").insert([{
       codigo: row.codigo,
       nome: row.nome || "Cliente sem nome",
       tipo,
       valor,
       data,
+      pago: false,
     }]);
 
     if (error) {
@@ -246,6 +243,7 @@ export default function AdminPanel() {
         tipo: "Assinatura",
         valor: VALORES_FATURAMENTO.Assinatura,
         data: u.usado_em || u.created_at || new Date().toISOString(),
+        pago: false,
       };
 
       // Sem usuario_id: na sua tabela faturamento esse campo está como bigint,
@@ -373,15 +371,20 @@ export default function AdminPanel() {
     aviso(tornarGratuito ? "Cliente marcado como de graça. Não entrará no faturamento." : "Cliente voltou para cobrança normal.");
   }
 
-  async function alternarGratuitoPorLancamento(row) {
-    const cliente = usuarios.find((u) => String(u.codigo || "") === String(row.codigo || ""));
+  async function alternarPagamentoLancamento(row) {
+    const novoStatusPago = !isTransacaoPaga(row);
+    const { error } = await supabase
+      .from("faturamento")
+      .update({ pago: novoStatusPago })
+      .eq("id", row.id);
 
-    if (!cliente) {
-      aviso("Não encontrei o cliente desse lançamento para marcar como de graça.", "erro");
-      return;
+    if (error) {
+      console.error("Erro ao atualizar pagamento:", error);
+      return aviso("Erro ao atualizar pagamento. Confira se a coluna 'pago' existe no Supabase.", "erro");
     }
 
-    await alternarGratuito(cliente);
+    await carregar();
+    aviso(novoStatusPago ? "Pagamento marcado como pago." : "Pagamento marcado como pendente.");
   }
 
   async function renovar(row) {
@@ -391,9 +394,9 @@ export default function AdminPanel() {
     
     const faturado = await registrarFaturamento(row, "Renovação", VALORES_FATURAMENTO.Renovação);
 
-    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. ${faturado === "gratuito" ? "Cliente gratuito: sem faturamento." : faturado ? "Faturado R$ 29,90." : "Faturamento não registrado."}`);
+    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. ${faturado ? "Lançado no faturamento como pendente." : "Faturamento não registrado."}`);
 
-    await carregar(); aviso(faturado === "gratuito" ? `Renovado sem faturar, cliente está marcado como de graça.` : faturado ? `Renovado! Lançado R$ 29,90 no faturamento.` : `Renovado, mas confira o faturamento.`);
+    await carregar(); aviso(faturado ? `Renovado! Lançado no faturamento como pendente.` : `Renovado, mas confira o faturamento.`);
     if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: STATUS.ATIVO, validade: novaValidade});
   }
 
@@ -406,8 +409,8 @@ export default function AdminPanel() {
     // Só cobra R$ 5,00 se alterar dados cadastrais (nome, doc, etc). Apenas mudar observação não cobra.
     if (!isObservacaoOnly) {
       const faturado = await registrarFaturamento({ ...row, nome: dados.nome || row.nome }, "Alteração", VALORES_FATURAMENTO.Alteração);
-      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. ${faturado === "gratuito" ? "Cliente gratuito: sem faturamento." : faturado ? "Faturado R$ 5,00." : "Faturamento não registrado."}`);
-      aviso(faturado === "gratuito" ? "Dados atualizados sem faturar, cliente está marcado como de graça." : faturado ? "Dados atualizados! Cobrança de R$ 5,00 registrada." : "Dados atualizados, mas confira o faturamento.");
+      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. ${faturado ? "Lançado no faturamento como pendente." : "Faturamento não registrado."}`);
+      aviso(faturado ? "Dados atualizados! Cobrança lançada como pendente." : "Dados atualizados, mas confira o faturamento.");
     } else {
       await registrarHistorico(row.id, "Edição de Observação", `Observações atualizadas.`);
       aviso("Observações salvas com sucesso!");
@@ -445,7 +448,8 @@ export default function AdminPanel() {
     
     let totalReceita = 0, valAssinaturas = 0, valRenovacoes = 0, valAlteracoes = 0;
     let qtdAssinaturas = 0, qtdRenovacoes = 0, qtdAlteracoes = 0;
-    transacoes.forEach(t => {
+    const transacoesPagas = transacoes.filter(isTransacaoPaga);
+    transacoesPagas.forEach(t => {
       totalReceita += Number(t.valor || 0);
       if (t.tipo === "Assinatura") { valAssinaturas += Number(t.valor || 0); qtdAssinaturas += 1; }
       if (t.tipo === "Renovação") { valRenovacoes += Number(t.valor || 0); qtdRenovacoes += 1; }
@@ -705,7 +709,7 @@ export default function AdminPanel() {
                   <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-md col-span-1 md:col-span-2">
                     <span className="text-blue-100 text-sm font-bold uppercase tracking-wider">Receita Total Confirmada</span>
                     <strong className="block text-4xl font-black mt-2">{money.format(stats.totalReceita)}</strong>
-                    <p className="text-blue-200 text-sm mt-1">Todos os registros são marcados como Pagos.</p>
+                    <p className="text-blue-200 text-sm mt-1">Somente pagamentos marcados como ON entram na receita.</p>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
                     <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Repasse calculado</span>
@@ -739,7 +743,7 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarGratuitoPorLancamento, usuarios }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamentoLancamento }} 
                 />
               </div>
             )}
@@ -753,7 +757,7 @@ export default function AdminPanel() {
       </main>
 
       {toast && <Toast toast={toast} />}
-      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} onAlternarGratuito={alternarGratuito} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
       {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
     </div>
   );
@@ -907,7 +911,10 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
                         <strong className="block text-sm text-slate-800">{money.format(row.valor)}</strong>
-                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${isTransacaoPaga(row) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{isTransacaoPaga(row) ? 'Pago' : 'Pendente'}</span>
+                        </div>
                       </td>
                     )}
                     
@@ -916,22 +923,20 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
                         {(() => {
-                          const cliente = actions.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || ""));
-                          const gratuito = cliente ? isGratuito(cliente) : false;
+                          const pago = isTransacaoPaga(row);
                           return (
                             <div className="flex flex-wrap items-center justify-end gap-3">
                               <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
                               <button
                                 type="button"
-                                onClick={() => actions.alternarGratuitoPorLancamento?.(row)}
-                                disabled={!cliente}
-                                className={`rounded-xl transition-all ${cliente ? "hover:scale-[1.01]" : "opacity-50 cursor-not-allowed"}`}
-                                title={gratuito ? "Gratuito ativado" : "Cobrança normal"}
+                                onClick={() => actions.alternarPagamentoLancamento?.(row)}
+                                className="rounded-xl transition-all hover:scale-[1.01]"
+                                title={pago ? "Pago" : "Pendente"}
                               >
-                                <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${gratuito ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
-                                  <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${gratuito ? "opacity-100" : "opacity-0"}`}>ON</span>
-                                  <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${gratuito ? "opacity-0" : "opacity-100"}`}>OFF</span>
-                                  <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${gratuito ? "translate-x-8" : "translate-x-0"}`} />
+                                <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${pago ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                                  <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${pago ? "opacity-100" : "opacity-0"}`}>ON</span>
+                                  <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${pago ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                                  <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${pago ? "translate-x-8" : "translate-x-0"}`} />
                                 </span>
                               </button>
                             </div>
@@ -1016,7 +1021,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
   );
 }
 
-function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesbloquear, onSalvar, onAlternarGratuito }) {
+function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesbloquear, onSalvar }) {
   const [abaModal, setAbaModal] = useState("dados"); // 'dados' ou 'historico'
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -1029,7 +1034,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
 
   const statsList = [
     { label: "Status", value: row.status },
-    { label: "Pagamento", value: isGratuito(row) ? "De graça" : (row.pagamento_status || "Normal") },
+    { label: "Pagamento", value: row.pagamento_status || "Normal" },
     { label: "Validade", value: formatarData(row.validade) },
     { label: "Criado em", value: formatarDataHora(row.created_at) },
     { label: "Usado em", value: formatarDataHora(row.usado_em) },
@@ -1072,7 +1077,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Informações do Cliente</h3>
-                  {isEditing && <p className="text-xs text-amber-600 font-bold">{isGratuito(row) ? "Cliente marcado como de graça: alterações não entram no faturamento." : "Aviso: Salvar mudanças cadastrais gera cobrança de R$ 5,00."}</p>}
+                  {isEditing && <p className="text-xs text-amber-600 font-bold">Aviso: Salvar mudanças cadastrais gera cobrança de R$ 5,00.</p>}
                 </div>
                 <button onClick={() => setIsEditing(!isEditing)} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline px-3 py-1.5 bg-blue-50 rounded-lg">
                   {isEditing ? "Cancelar Edição" : <><Edit2 size={14}/> Editar Cliente</>}
@@ -1175,7 +1180,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
             )}
             <button onClick={() => onRenovar(row)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex flex-col items-center justify-center">
               <span>Renovar +90 Dias</span>
-              <span className="text-[10px] font-normal opacity-90 mt-0.5">{isGratuito(row) ? "(Sem faturar)" : "(Lançar R$ 29,90)"}</span>
+              <span className="text-[10px] font-normal opacity-90 mt-0.5">(Lançar R$ 29,90)</span>
             </button>
           </div>
         </div>
