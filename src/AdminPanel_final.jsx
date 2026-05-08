@@ -373,6 +373,17 @@ export default function AdminPanel() {
     aviso(tornarGratuito ? "Cliente marcado como de graça. Não entrará no faturamento." : "Cliente voltou para cobrança normal.");
   }
 
+  async function alternarGratuitoPorLancamento(row) {
+    const cliente = usuarios.find((u) => String(u.codigo || "") === String(row.codigo || ""));
+
+    if (!cliente) {
+      aviso("Não encontrei o cliente desse lançamento para marcar como de graça.", "erro");
+      return;
+    }
+
+    await alternarGratuito(cliente);
+  }
+
   async function renovar(row) {
     const novaValidade = validade90Dias();
     const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
@@ -728,7 +739,7 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarGratuitoPorLancamento, usuarios }} 
                 />
               </div>
             )}
@@ -904,7 +915,29 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
-                        <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
+                        {(() => {
+                          const cliente = actions.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || ""));
+                          const gratuito = cliente ? isGratuito(cliente) : false;
+                          return (
+                            <div className="flex flex-wrap items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => actions.alternarGratuitoPorLancamento?.(row)}
+                                disabled={!cliente}
+                                className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all ${cliente ? "bg-white hover:bg-slate-50 border-slate-200" : "bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed"}`}
+                                title={gratuito ? "Cliente marcado como de graça" : "Marcar este cliente como de graça"}
+                              >
+                                <span className="text-[11px] font-black text-slate-600 uppercase whitespace-nowrap">De graça</span>
+                                <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${gratuito ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                                  <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${gratuito ? "opacity-100" : "opacity-0"}`}>ON</span>
+                                  <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${gratuito ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                                  <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${gratuito ? "translate-x-8" : "translate-x-0"}`} />
+                                </span>
+                              </button>
+                              <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
+                            </div>
+                          );
+                        })()}
                       </td>
                     )}
 
