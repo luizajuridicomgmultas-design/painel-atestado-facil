@@ -345,6 +345,14 @@ export default function AdminPanel() {
     
     const { error } = await supabase.from("usuarios").update(dados).eq("id", row.id);
     if (error) return aviso("Erro ao salvar dados.", "erro");
+
+    if ((dados.nome || "") !== (row.nome || "") && row.codigo) {
+      const { error: nomeFaturamentoError } = await supabase
+        .from("faturamento")
+        .update({ nome: dados.nome || row.nome })
+        .eq("codigo", row.codigo);
+      if (nomeFaturamentoError) console.warn("Nome atualizado no cliente, mas não no faturamento:", nomeFaturamentoError);
+    }
     
     // Só cobra R$ 5,00 se alterar dados cadastrais (nome, doc, etc). Apenas mudar observação não cobra.
     if (!isObservacaoOnly) {
@@ -699,7 +707,7 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento, usuarios }} 
                 />
               </div>
             )}
@@ -857,10 +865,19 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                 {simple ? (
                   <>
                     <td className="px-6 py-4">
-                      <strong className="block text-slate-800 text-sm">{row.nome || "Não vinculado"}</strong>
-                      <span className="text-xs text-slate-500 truncate block max-w-[250px]">
-                        {mode === "erros" ? row.ultimo_erro : mode === "documentos" ? (row.email || row.telefone) : (row.email || row.telefone || "Lançamento Faturamento")}
-                      </span>
+                      {(() => {
+                        const clienteAtual = mode === "faturamento" ? actions?.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || "")) : null;
+                        const nomeAtual = clienteAtual?.nome || row.nome || "Não vinculado";
+                        const contatoAtual = clienteAtual?.email || clienteAtual?.telefone || row.email || row.telefone || "Lançamento Faturamento";
+                        return (
+                          <>
+                            <strong className="block text-slate-800 text-sm">{nomeAtual}</strong>
+                            <span className="text-xs text-slate-500 truncate block max-w-[250px]">
+                              {mode === "erros" ? row.ultimo_erro : mode === "documentos" ? (row.email || row.telefone) : contatoAtual}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4"><span className="font-mono text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">{row.codigo}</span></td>
                     
