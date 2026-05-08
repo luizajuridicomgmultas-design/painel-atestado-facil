@@ -20,6 +20,20 @@ const STATUS = {
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+const VALORES_FATURAMENTO = {
+  Assinatura: 29.90,
+  Renovação: 29.90,
+  Alteração: 5.00,
+};
+
+const getRegraRepasse = (clientesAtivos) => {
+  const total = Number(clientesAtivos || 0);
+  if (total >= 50) return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ clientes ativos" };
+  if (total >= 25) return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ clientes ativos" };
+  if (total >= 12) return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "12+ clientes ativos" };
+  return { assinatura: 0, alteracao: 0, renovacao: 0, faixa: "Abaixo de 12 clientes ativos" };
+};
+
 // Utilitários
 const gerarCodigo = () => String(Math.floor(10000 + Math.random() * 90000));
 const hojeISO = () => new Date().toISOString().split("T")[0];
@@ -133,12 +147,16 @@ export default function AdminPanel() {
     
     // Carrega Usuários
     const resUsr = await supabase.from("usuarios").select("*").order("created_at", { ascending: false });
+    const listaUsuarios = resUsr.data || [];
     if (resUsr.error) aviso("Erro ao carregar usuários.", "erro");
-    else setUsuarios(resUsr.data || []);
+    else setUsuarios(listaUsuarios);
 
-    // Carrega Faturamento
+    // Carrega Faturamento e sincroniza assinaturas novas automaticamente
     const resFat = await supabase.from("faturamento").select("*").order("data", { ascending: false });
-    if (!resFat.error) setTransacoes(resFat.data || []);
+    if (!resFat.error) {
+      const faturamentoSincronizado = await sincronizarAssinaturasAutomaticas(listaUsuarios, resFat.data || []);
+      setTransacoes(faturamentoSincronizado.sort((a, b) => new Date(b.data || b.created_at || 0) - new Date(a.data || a.created_at || 0)));
+    }
 
     // Carrega Histórico
     const resHist = await supabase.from("historico").select("*").order("data", { ascending: false });
@@ -147,9 +165,68 @@ export default function AdminPanel() {
     setCarregando(false);
   }
 
-  // --- FUNÇÕES DE REGISTRO DE HISTÓRICO ---
+  // --- FUNÇÕES DE REGISTRO DE HISTÓRICO E FATURAMENTO ---
   async function registrarHistorico(usuario_id, acao, detalhes) {
     await supabase.from("historico").insert([{ usuario_id, acao, detalhes, data: new Date().toISOString() }]);
+  }
+
+  async function registrarFaturamento(row, tipo, valor, data = new Date().toISOString()) {
+    const { error } = await supabase.from("faturamento").insert([{
+      usuario_id: row.id,
+      codigo: row.codigo,
+      nome: row.nome || "Cliente sem nome",
+      tipo,
+      valor,
+      data,
+    }]);
+
+    if (error) {
+      console.error(`Erro ao lançar faturamento (${tipo}):`, error);
+      aviso(`Erro ao lançar ${tipo} no faturamento.`, "erro");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function sincronizarAssinaturasAutomaticas(listaUsuarios, listaTransacoes) {
+    const jaFaturados = new Set(
+      (listaTransacoes || [])
+        .filter(t => t.tipo === "Assinatura" && t.usuario_id)
+        .map(t => String(t.usuario_id))
+    );
+
+    const usuariosParaFaturar = (listaUsuarios || []).filter(u =>
+      u.id &&
+      u.nome &&
+      u.status === STATUS.ATIVO &&
+      !jaFaturados.has(String(u.id))
+    );
+
+    if (!usuariosParaFaturar.length) return listaTransacoes || [];
+
+    const novosLancamentos = usuariosParaFaturar.map(u => ({
+      usuario_id: u.id,
+      codigo: u.codigo,
+      nome: u.nome,
+      tipo: "Assinatura",
+      valor: VALORES_FATURAMENTO.Assinatura,
+      data: u.usado_em || u.created_at || new Date().toISOString(),
+    }));
+
+    const { data, error } = await supabase
+      .from("faturamento")
+      .insert(novosLancamentos)
+      .select("*");
+
+    if (error) {
+      console.error("Erro ao sincronizar assinaturas:", error);
+      aviso("Algumas assinaturas não foram lançadas no faturamento.", "erro");
+      return listaTransacoes || [];
+    }
+
+    aviso(`${novosLancamentos.length} assinatura(s) sincronizada(s) no faturamento.`);
+    return [...(data || []), ...(listaTransacoes || [])];
   }
 
   const entrar = (e) => {
@@ -222,14 +299,11 @@ export default function AdminPanel() {
     const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
     if (error) return aviso("Erro ao renovar.", "erro");
     
-    await supabase.from("faturamento").insert([{
-      usuario_id: row.id, codigo: row.codigo, nome: row.nome,
-      tipo: "Renovação", valor: 29.90, data: new Date().toISOString()
-    }]);
+    const faturado = await registrarFaturamento(row, "Renovação", VALORES_FATURAMENTO.Renovação);
 
-    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. Faturado R$ 29,90.`);
+    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. ${faturado ? "Faturado R$ 29,90." : "Faturamento não registrado."}`);
 
-    await carregar(); aviso(`Renovado! Lançado R$ 29,90 no faturamento.`);
+    await carregar(); aviso(faturado ? `Renovado! Lançado R$ 29,90 no faturamento.` : `Renovado, mas confira o faturamento.`);
     if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: STATUS.ATIVO, validade: novaValidade});
   }
 
@@ -241,12 +315,9 @@ export default function AdminPanel() {
     
     // Só cobra R$ 5,00 se alterar dados cadastrais (nome, doc, etc). Apenas mudar observação não cobra.
     if (!isObservacaoOnly) {
-      await supabase.from("faturamento").insert([{
-        usuario_id: row.id, codigo: row.codigo, nome: dados.nome || row.nome,
-        tipo: "Alteração", valor: 5.00, data: new Date().toISOString()
-      }]);
-      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. Faturado R$ 5,00.`);
-      aviso("Dados atualizados! Cobrança de R$ 5,00 registrada.");
+      const faturado = await registrarFaturamento({ ...row, nome: dados.nome || row.nome }, "Alteração", VALORES_FATURAMENTO.Alteração);
+      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. ${faturado ? "Faturado R$ 5,00." : "Faturamento não registrado."}`);
+      aviso(faturado ? "Dados atualizados! Cobrança de R$ 5,00 registrada." : "Dados atualizados, mas confira o faturamento.");
     } else {
       await registrarHistorico(row.id, "Edição de Observação", `Observações atualizadas.`);
       aviso("Observações salvas com sucesso!");
@@ -283,12 +354,19 @@ export default function AdminPanel() {
     const totalEnvios = usuarios.reduce((acc, u) => acc + Number(u.total_envios || 0), 0);
     
     let totalReceita = 0, valAssinaturas = 0, valRenovacoes = 0, valAlteracoes = 0;
+    let qtdAssinaturas = 0, qtdRenovacoes = 0, qtdAlteracoes = 0;
     transacoes.forEach(t => {
-      totalReceita += Number(t.valor);
-      if (t.tipo === "Assinatura") valAssinaturas += Number(t.valor);
-      if (t.tipo === "Renovação") valRenovacoes += Number(t.valor);
-      if (t.tipo === "Alteração") valAlteracoes += Number(t.valor);
+      totalReceita += Number(t.valor || 0);
+      if (t.tipo === "Assinatura") { valAssinaturas += Number(t.valor || 0); qtdAssinaturas += 1; }
+      if (t.tipo === "Renovação") { valRenovacoes += Number(t.valor || 0); qtdRenovacoes += 1; }
+      if (t.tipo === "Alteração") { valAlteracoes += Number(t.valor || 0); qtdAlteracoes += 1; }
     });
+
+    const regraRepasse = getRegraRepasse(ativo);
+    const repasseAssinaturas = qtdAssinaturas * regraRepasse.assinatura;
+    const repasseAlteracoes = qtdAlteracoes * regraRepasse.alteracao;
+    const repasseRenovacoes = qtdRenovacoes * regraRepasse.renovacao;
+    const totalRepasse = repasseAssinaturas + repasseAlteracoes + repasseRenovacoes;
 
     return {
       total: usuarios.length,
@@ -303,6 +381,15 @@ export default function AdminPanel() {
       valAssinaturas,
       valRenovacoes,
       valAlteracoes,
+      qtdAssinaturas,
+      qtdRenovacoes,
+      qtdAlteracoes,
+      regraRepasse,
+      repasseAssinaturas,
+      repasseAlteracoes,
+      repasseRenovacoes,
+      totalRepasse,
+      receitaLiquida: totalReceita - totalRepasse,
     };
   }, [usuarios, transacoes]);
 
@@ -458,7 +545,7 @@ export default function AdminPanel() {
                   <Kpi title="Total de Licenças" value={stats.total} sub={`${stats.livre} disponíveis`} icon={KeyRound} color="blue" />
                   <Kpi title="Licenças Ativas" value={stats.ativo} sub="Em uso no momento" icon={Users} color="emerald" />
                   <Kpi title="Receita (Pago)" value={money.format(stats.totalReceita)} sub="Faturamento total" icon={CreditCard} color="amber" />
-                  <Kpi title="Formulários Enviados" value={stats.totalEnvios || 0} sub="Total de usos do app" icon={FileText} color="red" />
+                  <Kpi title="Repasse Calculado" value={money.format(stats.totalRepasse)} sub={stats.regraRepasse.faixa} icon={TrendingUp} color="emerald" />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -531,12 +618,32 @@ export default function AdminPanel() {
                     <p className="text-blue-200 text-sm mt-1">Todos os registros são marcados como Pagos.</p>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
-                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Assinaturas (Novos)</span>
-                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valAssinaturas)}</strong>
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Repasse calculado</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.totalRepasse)}</strong>
+                    <span className="text-xs font-bold text-slate-400 mt-1">{stats.regraRepasse.faixa}</span>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
-                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Renovações / Alteraç.</span>
-                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valRenovacoes + stats.valAlteracoes)}</strong>
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Receita líquida</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.receitaLiquida)}</strong>
+                    <span className="text-xs font-bold text-slate-400 mt-1">Após repasse</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Assinaturas novas</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valAssinaturas)}</strong>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{stats.qtdAssinaturas} x repasse {money.format(stats.regraRepasse.assinatura)}</p>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Alterações</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valAlteracoes)}</strong>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{stats.qtdAlteracoes} x repasse {money.format(stats.regraRepasse.alteracao)}</p>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Renovações</span>
+                    <strong className="block text-2xl font-black text-slate-800 mt-1">{money.format(stats.valRenovacoes)}</strong>
+                    <p className="text-xs font-bold text-slate-400 mt-1">{stats.qtdRenovacoes} x repasse {money.format(stats.regraRepasse.renovacao)}</p>
                   </div>
                 </div>
                 <TableCard 
