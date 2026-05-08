@@ -28,24 +28,11 @@ const VALORES_FATURAMENTO = {
 
 const getRegraRepasse = (clientesAtivos) => {
   const total = Number(clientesAtivos || 0);
-
-  // Regras do repasse:
-  // Até 24 clientes ativos: R$10 por assinatura nova.
-  // A partir de 25 clientes ativos: R$12 por assinatura nova + R$5 por alteração.
-  // A partir de 50 clientes ativos: mantém assinatura/alteração e adiciona R$8 por renovação.
-  if (total >= 50) {
-    return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ ativos: assinatura, alteração e renovação" };
-  }
-
-  if (total >= 25) {
-    return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ ativos: assinatura e alteração" };
-  }
-
-  return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "Até 24 ativos: R$10 por assinatura" };
+  if (total >= 50) return { assinatura: 12, alteracao: 5, renovacao: 8, faixa: "50+ clientes ativos" };
+  if (total >= 25) return { assinatura: 12, alteracao: 5, renovacao: 0, faixa: "25+ clientes ativos" };
+  if (total >= 12) return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "12+ clientes ativos" };
+  return { assinatura: 0, alteracao: 0, renovacao: 0, faixa: "Abaixo de 12 clientes ativos" };
 };
-
-const isGratuito = (row) => String(row?.pagamento_status || row?.pagamento || "").trim().toLowerCase() === "gratuito";
-const isTransacaoPaga = (row) => row?.pago === true || String(row?.pagamento_status || row?.status_pagamento || "").trim().toLowerCase() === "pago";
 
 // Utilitários
 const gerarCodigo = () => String(Math.floor(10000 + Math.random() * 90000));
@@ -180,9 +167,6 @@ export default function AdminPanel() {
 
   // --- FUNÇÕES DE REGISTRO DE HISTÓRICO E FATURAMENTO ---
   async function registrarHistorico(usuarioIdentificador, acao, detalhes) {
-    // A coluna usuario_id da tabela historico está como bigint no Supabase,
-    // mas o id da tabela usuarios é UUID. Para não quebrar o painel, não enviamos usuario_id.
-    // O vínculo fica registrado no texto do histórico.
     const detalhesComReferencia = usuarioIdentificador
       ? `${detalhes} | Ref: ${usuarioIdentificador}`
       : detalhes;
@@ -223,11 +207,9 @@ export default function AdminPanel() {
     );
 
     const usuariosParaFaturar = (listaUsuarios || []).filter(u =>
-      u.id &&
       u.codigo &&
       u.nome &&
       u.status === STATUS.ATIVO &&
-      !isGratuito(u) &&
       !jaFaturadosPorCodigo.has(String(u.codigo))
     );
 
@@ -246,17 +228,18 @@ export default function AdminPanel() {
         pago: false,
       };
 
-      // Sem usuario_id: na sua tabela faturamento esse campo está como bigint,
-      // mas o id de usuarios é UUID. Por isso o Supabase retornava erro 22P02.
-      // Usamos o codigo como vínculo para evitar quebrar o insert.
-      const { error } = await supabase.from("faturamento").insert([lancamento]);
+      const { data, error } = await supabase
+        .from("faturamento")
+        .insert([lancamento])
+        .select("*")
+        .maybeSingle();
 
       if (error) {
         console.error("Erro ao sincronizar assinatura:", { usuario: u, lancamento, error });
         erros.push({ usuario: u, error });
       } else {
-        novosLancamentos.push({ ...lancamento, id: `local-${u.id}-${Date.now()}` });
-        await registrarHistorico(u.id, "Assinatura", "Cliente ativo sincronizado no faturamento. Faturado R$ 29,90.");
+        novosLancamentos.push(data || { ...lancamento, id: `local-${u.codigo}-${Date.now()}` });
+        await registrarHistorico(u.id || u.codigo, "Assinatura", "Cliente ativo sincronizado no faturamento como pendente.");
       }
     }
 
@@ -265,7 +248,7 @@ export default function AdminPanel() {
     }
 
     if (novosLancamentos.length) {
-      aviso(`${novosLancamentos.length} assinatura(s) sincronizada(s) no faturamento.`);
+      aviso(`${novosLancamentos.length} assinatura(s) sincronizada(s) no faturamento como pendente.`);
     }
 
     return [...novosLancamentos, ...transacoesAtuais];
@@ -336,57 +319,6 @@ export default function AdminPanel() {
     if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: novoStatus, bloqueado_motivo: null});
   }
 
-  async function alternarGratuito(row) {
-    const tornarGratuito = !isGratuito(row);
-    const novoPagamentoStatus = tornarGratuito ? "Gratuito" : "Pendente";
-
-    const { error } = await supabase
-      .from("usuarios")
-      .update({ pagamento_status: novoPagamentoStatus })
-      .eq("id", row.id);
-
-    if (error) {
-      console.error("Erro ao atualizar gratuidade:", error);
-      return aviso("Erro ao atualizar gratuidade.", "erro");
-    }
-
-    if (tornarGratuito && row.codigo) {
-      const { error: deleteError } = await supabase
-        .from("faturamento")
-        .delete()
-        .eq("codigo", row.codigo);
-
-      if (deleteError) {
-        console.warn("Não foi possível remover faturamento do cliente gratuito:", deleteError);
-        aviso("Cliente marcado como gratuito, mas confira o faturamento.", "erro");
-      }
-    }
-
-    await registrarHistorico(row.id, "Gratuidade", tornarGratuito ? "Cliente marcado como gratuito. Cobranças removidas e novos lançamentos não serão faturados." : "Cliente voltou para cobrança normal.");
-    await carregar();
-
-    const rowAtualizada = { ...row, pagamento_status: novoPagamentoStatus };
-    if (modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes(rowAtualizada);
-
-    aviso(tornarGratuito ? "Cliente marcado como de graça. Não entrará no faturamento." : "Cliente voltou para cobrança normal.");
-  }
-
-  async function alternarPagamentoLancamento(row) {
-    const novoStatusPago = !isTransacaoPaga(row);
-    const { error } = await supabase
-      .from("faturamento")
-      .update({ pago: novoStatusPago })
-      .eq("id", row.id);
-
-    if (error) {
-      console.error("Erro ao atualizar pagamento:", error);
-      return aviso("Erro ao atualizar pagamento. Confira se a coluna 'pago' existe no Supabase.", "erro");
-    }
-
-    await carregar();
-    aviso(novoStatusPago ? "Pagamento marcado como pago." : "Pagamento marcado como pendente.");
-  }
-
   async function renovar(row) {
     const novaValidade = validade90Dias();
     const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
@@ -435,6 +367,22 @@ export default function AdminPanel() {
       await carregar();
       aviso("Comprovante anexado com sucesso!");
     }, 1000);
+  }
+
+  async function alternarPagamento(row) {
+    const novoStatusPago = !isTransacaoPaga(row);
+    const { error } = await supabase
+      .from("faturamento")
+      .update({ pago: novoStatusPago })
+      .eq("id", row.id);
+
+    if (error) {
+      console.error("Erro ao atualizar pagamento:", error);
+      return aviso("Erro ao atualizar pagamento. Confira se a coluna 'pago' existe no Supabase.", "erro");
+    }
+
+    await carregar();
+    aviso(novoStatusPago ? "Pagamento marcado como pago." : "Pagamento marcado como pendente.");
   }
 
   const stats = useMemo(() => {
@@ -709,7 +657,7 @@ export default function AdminPanel() {
                   <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-md col-span-1 md:col-span-2">
                     <span className="text-blue-100 text-sm font-bold uppercase tracking-wider">Receita Total Confirmada</span>
                     <strong className="block text-4xl font-black mt-2">{money.format(stats.totalReceita)}</strong>
-                    <p className="text-blue-200 text-sm mt-1">Somente pagamentos marcados como ON entram na receita.</p>
+                    <p className="text-blue-200 text-sm mt-1">Todos os registros são marcados como Pagos.</p>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-center">
                     <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Repasse calculado</span>
@@ -743,7 +691,7 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamentoLancamento }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento }} 
                 />
               </div>
             )}
@@ -757,7 +705,7 @@ export default function AdminPanel() {
       </main>
 
       {toast && <Toast toast={toast} />}
-      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id)} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
       {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
     </div>
   );
@@ -911,10 +859,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
                         <strong className="block text-sm text-slate-800">{money.format(row.valor)}</strong>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${isTransacaoPaga(row) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{isTransacaoPaga(row) ? 'Pago' : 'Pendente'}</span>
-                        </div>
+                        <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
                       </td>
                     )}
                     
@@ -922,26 +867,21 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
-                        {(() => {
-                          const pago = isTransacaoPaga(row);
-                          return (
-                            <div className="flex flex-wrap items-center justify-end gap-3">
-                              <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
-                              <button
-                                type="button"
-                                onClick={() => actions.alternarPagamentoLancamento?.(row)}
-                                className="rounded-xl transition-all hover:scale-[1.01]"
-                                title={pago ? "Pago" : "Pendente"}
-                              >
-                                <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${pago ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
-                                  <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${pago ? "opacity-100" : "opacity-0"}`}>ON</span>
-                                  <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${pago ? "opacity-0" : "opacity-100"}`}>OFF</span>
-                                  <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${pago ? "translate-x-8" : "translate-x-0"}`} />
-                                </span>
-                              </button>
-                            </div>
-                          );
-                        })()}
+                        <div className="flex flex-wrap items-center justify-end gap-3">
+                          <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
+                          <button
+                            type="button"
+                            onClick={() => actions.alternarPagamento?.(row)}
+                            className="rounded-xl transition-all hover:scale-[1.01]"
+                            title={isTransacaoPaga(row) ? "Pago" : "Pendente"}
+                          >
+                            <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isTransacaoPaga(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                              <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${isTransacaoPaga(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
+                              <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                              <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
+                            </span>
+                          </button>
+                        </div>
                       </td>
                     )}
 
@@ -1034,7 +974,6 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
 
   const statsList = [
     { label: "Status", value: row.status },
-    { label: "Pagamento", value: row.pagamento_status || "Normal" },
     { label: "Validade", value: formatarData(row.validade) },
     { label: "Criado em", value: formatarDataHora(row.created_at) },
     { label: "Usado em", value: formatarDataHora(row.usado_em) },
