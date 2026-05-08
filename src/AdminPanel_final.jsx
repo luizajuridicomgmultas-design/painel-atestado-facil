@@ -44,6 +44,8 @@ const getRegraRepasse = (clientesAtivos) => {
   return { assinatura: 10, alteracao: 0, renovacao: 0, faixa: "Até 24 ativos: R$10 por assinatura" };
 };
 
+const isGratuito = (row) => String(row?.pagamento_status || row?.pagamento || "").trim().toLowerCase() === "gratuito";
+
 // Utilitários
 const gerarCodigo = () => String(Math.floor(10000 + Math.random() * 90000));
 const hojeISO = () => new Date().toISOString().split("T")[0];
@@ -192,6 +194,11 @@ export default function AdminPanel() {
   }
 
   async function registrarFaturamento(row, tipo, valor, data = new Date().toISOString()) {
+    if (isGratuito(row)) {
+      await registrarHistorico(row.id || row.codigo, tipo, `${tipo} não lançado no faturamento porque o cliente está marcado como gratuito.`);
+      return "gratuito";
+    }
+
     const { error } = await supabase.from("faturamento").insert([{
       codigo: row.codigo,
       nome: row.nome || "Cliente sem nome",
@@ -223,6 +230,7 @@ export default function AdminPanel() {
       u.codigo &&
       u.nome &&
       u.status === STATUS.ATIVO &&
+      !isGratuito(u) &&
       !jaFaturadosPorCodigo.has(String(u.codigo))
     );
 
@@ -330,6 +338,41 @@ export default function AdminPanel() {
     if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: novoStatus, bloqueado_motivo: null});
   }
 
+  async function alternarGratuito(row) {
+    const tornarGratuito = !isGratuito(row);
+    const novoPagamentoStatus = tornarGratuito ? "Gratuito" : "Pendente";
+
+    const { error } = await supabase
+      .from("usuarios")
+      .update({ pagamento_status: novoPagamentoStatus })
+      .eq("id", row.id);
+
+    if (error) {
+      console.error("Erro ao atualizar gratuidade:", error);
+      return aviso("Erro ao atualizar gratuidade.", "erro");
+    }
+
+    if (tornarGratuito && row.codigo) {
+      const { error: deleteError } = await supabase
+        .from("faturamento")
+        .delete()
+        .eq("codigo", row.codigo);
+
+      if (deleteError) {
+        console.warn("Não foi possível remover faturamento do cliente gratuito:", deleteError);
+        aviso("Cliente marcado como gratuito, mas confira o faturamento.", "erro");
+      }
+    }
+
+    await registrarHistorico(row.id, "Gratuidade", tornarGratuito ? "Cliente marcado como gratuito. Cobranças removidas e novos lançamentos não serão faturados." : "Cliente voltou para cobrança normal.");
+    await carregar();
+
+    const rowAtualizada = { ...row, pagamento_status: novoPagamentoStatus };
+    if (modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes(rowAtualizada);
+
+    aviso(tornarGratuito ? "Cliente marcado como de graça. Não entrará no faturamento." : "Cliente voltou para cobrança normal.");
+  }
+
   async function renovar(row) {
     const novaValidade = validade90Dias();
     const { error } = await supabase.from("usuarios").update({ status: STATUS.ATIVO, validade: novaValidade, renovado_em: new Date().toISOString(), bloqueado_motivo: null }).eq("id", row.id);
@@ -337,9 +380,9 @@ export default function AdminPanel() {
     
     const faturado = await registrarFaturamento(row, "Renovação", VALORES_FATURAMENTO.Renovação);
 
-    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. ${faturado ? "Faturado R$ 29,90." : "Faturamento não registrado."}`);
+    await registrarHistorico(row.id, "Renovação", `Validade estendida para ${formatarData(novaValidade)}. ${faturado === "gratuito" ? "Cliente gratuito: sem faturamento." : faturado ? "Faturado R$ 29,90." : "Faturamento não registrado."}`);
 
-    await carregar(); aviso(faturado ? `Renovado! Lançado R$ 29,90 no faturamento.` : `Renovado, mas confira o faturamento.`);
+    await carregar(); aviso(faturado === "gratuito" ? `Renovado sem faturar, cliente está marcado como de graça.` : faturado ? `Renovado! Lançado R$ 29,90 no faturamento.` : `Renovado, mas confira o faturamento.`);
     if(modalDetalhes && modalDetalhes.id === row.id) setModalDetalhes({...row, status: STATUS.ATIVO, validade: novaValidade});
   }
 
@@ -352,8 +395,8 @@ export default function AdminPanel() {
     // Só cobra R$ 5,00 se alterar dados cadastrais (nome, doc, etc). Apenas mudar observação não cobra.
     if (!isObservacaoOnly) {
       const faturado = await registrarFaturamento({ ...row, nome: dados.nome || row.nome }, "Alteração", VALORES_FATURAMENTO.Alteração);
-      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. ${faturado ? "Faturado R$ 5,00." : "Faturamento não registrado."}`);
-      aviso(faturado ? "Dados atualizados! Cobrança de R$ 5,00 registrada." : "Dados atualizados, mas confira o faturamento.");
+      await registrarHistorico(row.id, "Edição de Cadastro", `Dados atualizados. ${faturado === "gratuito" ? "Cliente gratuito: sem faturamento." : faturado ? "Faturado R$ 5,00." : "Faturamento não registrado."}`);
+      aviso(faturado === "gratuito" ? "Dados atualizados sem faturar, cliente está marcado como de graça." : faturado ? "Dados atualizados! Cobrança de R$ 5,00 registrada." : "Dados atualizados, mas confira o faturamento.");
     } else {
       await registrarHistorico(row.id, "Edição de Observação", `Observações atualizadas.`);
       aviso("Observações salvas com sucesso!");
@@ -699,7 +742,7 @@ export default function AdminPanel() {
       </main>
 
       {toast && <Toast toast={toast} />}
-      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} onAlternarGratuito={alternarGratuito} />}
       {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
     </div>
   );
@@ -941,7 +984,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
   );
 }
 
-function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesbloquear, onSalvar }) {
+function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesbloquear, onSalvar, onAlternarGratuito }) {
   const [abaModal, setAbaModal] = useState("dados"); // 'dados' ou 'historico'
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -954,6 +997,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
 
   const statsList = [
     { label: "Status", value: row.status },
+    { label: "Pagamento", value: isGratuito(row) ? "De graça" : (row.pagamento_status || "Normal") },
     { label: "Validade", value: formatarData(row.validade) },
     { label: "Criado em", value: formatarDataHora(row.created_at) },
     { label: "Usado em", value: formatarDataHora(row.usado_em) },
@@ -996,7 +1040,7 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Informações do Cliente</h3>
-                  {isEditing && <p className="text-xs text-amber-600 font-bold">Aviso: Salvar mudanças cadastrais gera cobrança de R$ 5,00.</p>}
+                  {isEditing && <p className="text-xs text-amber-600 font-bold">{isGratuito(row) ? "Cliente marcado como de graça: alterações não entram no faturamento." : "Aviso: Salvar mudanças cadastrais gera cobrança de R$ 5,00."}</p>}
                 </div>
                 <button onClick={() => setIsEditing(!isEditing)} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline px-3 py-1.5 bg-blue-50 rounded-lg">
                   {isEditing ? "Cancelar Edição" : <><Edit2 size={14}/> Editar Cliente</>}
@@ -1097,9 +1141,21 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
             ) : (
               <button onClick={() => onBloquear(row)} className="px-4 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-bold transition-colors">Bloquear Licença</button>
             )}
+            <button
+              onClick={() => onAlternarGratuito(row)}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+              title={isGratuito(row) ? "Cliente de graça: não entra no faturamento" : "Clique para marcar como de graça"}
+            >
+              <span className="text-xs font-black text-slate-600 uppercase whitespace-nowrap">De graça</span>
+              <span className={`relative inline-flex h-9 w-20 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isGratuito(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                <span className={`absolute left-4 text-xs font-black text-white transition-opacity ${isGratuito(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
+                <span className={`absolute right-3 text-[10px] font-black text-slate-500 transition-opacity ${isGratuito(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                <span className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-300 ${isGratuito(row) ? "translate-x-11" : "translate-x-0"}`} />
+              </span>
+            </button>
             <button onClick={() => onRenovar(row)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex flex-col items-center justify-center">
               <span>Renovar +90 Dias</span>
-              <span className="text-[10px] font-normal opacity-90 mt-0.5">(Lançar R$ 29,90)</span>
+              <span className="text-[10px] font-normal opacity-90 mt-0.5">{isGratuito(row) ? "(Sem faturar)" : "(Lançar R$ 29,90)"}</span>
             </button>
           </div>
         </div>
