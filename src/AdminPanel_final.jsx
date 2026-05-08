@@ -338,8 +338,7 @@ export default function AdminPanel() {
   async function salvarEdicao(row, dados) {
     const camposCadastrais = [
       "nome", "email", "telefone", "cpf",
-      "cargo_funcao", "orgao_lotacao", "matricula_1", "matricula_2",
-      "unidade_lotacao_1", "unidade_lotacao_2", "situacao_funcional"
+      "cargo", "orgao", "mat1", "mat2", "unid1", "unid2", "sit"
     ];
     const houveMudancaCadastral = camposCadastrais.some((campo) => (dados[campo] || "") !== (row[campo] || ""));
     const isObservacaoOnly = (dados.observacoes !== row.observacoes) && !houveMudancaCadastral;
@@ -714,7 +713,7 @@ export default function AdminPanel() {
       </main>
 
       {toast && <Toast toast={toast} />}
-      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id)} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
+      {modalDetalhes && <DetailsModal row={modalDetalhes} historico={historicoGlobal.filter(h => h.usuario_id === modalDetalhes.id || String(h.detalhes || "").includes(String(modalDetalhes.id)) || String(h.detalhes || "").includes(String(modalDetalhes.codigo)))} onClose={() => setModalDetalhes(null)} onRenovar={renovar} onBloquear={setModalBloqueio} onDesbloquear={desbloquear} onSalvar={salvarEdicao} />}
       {modalBloqueio && <BlockModal row={modalBloqueio} onClose={() => setModalBloqueio(null)} onConfirm={bloquear} />}
     </div>
   );
@@ -974,17 +973,17 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
   const [abaModal, setAbaModal] = useState("dados"); // 'dados' ou 'historico'
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
-    nome: row.nome || row.nome_completo || "", 
+    nome: row.nome || "", 
     email: row.email || "", 
     telefone: row.telefone || "", 
     cpf: row.cpf || "",
-    cargo_funcao: row.cargo_funcao || "",
-    orgao_lotacao: row.orgao_lotacao || "",
-    matricula_1: row.matricula_1 || "",
-    matricula_2: row.matricula_2 || "",
-    unidade_lotacao_1: row.unidade_lotacao_1 || "",
-    unidade_lotacao_2: row.unidade_lotacao_2 || "",
-    situacao_funcional: row.situacao_funcional || "",
+    cargo: row.cargo || "",
+    orgao: row.orgao || "",
+    mat1: row.mat1 || "",
+    mat2: row.mat2 || "",
+    unid1: row.unid1 || "",
+    unid2: row.unid2 || "",
+    sit: row.sit || "Efetivo(a)",
     observacoes: row.observacoes || ""
   });
 
@@ -1043,16 +1042,16 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-blue-50/30 p-4 rounded-xl border border-blue-100">
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">Nome completo</label><input value={formData.nome} onChange={e=>setFormData({...formData, nome: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">CPF</label><input value={formData.cpf} onChange={e=>setFormData({...formData, cpf: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Cargo/Função</label><input value={formData.cargo_funcao} onChange={e=>setFormData({...formData, cargo_funcao: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Órgão (lotação)</label><input value={formData.orgao_lotacao} onChange={e=>setFormData({...formData, orgao_lotacao: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Mat. 1º cargo</label><input value={formData.matricula_1} onChange={e=>setFormData({...formData, matricula_1: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Mat. 2º cargo</label><input value={formData.matricula_2} onChange={e=>setFormData({...formData, matricula_2: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Unid. (lotação) 1º cargo</label><input value={formData.unidade_lotacao_1} onChange={e=>setFormData({...formData, unidade_lotacao_1: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Unid. (lotação) 2º cargo</label><input value={formData.unidade_lotacao_2} onChange={e=>setFormData({...formData, unidade_lotacao_2: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Cargo/Função</label><input value={formData.cargo} onChange={e=>setFormData({...formData, cargo: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Órgão (lotação)</label><input value={formData.orgao} onChange={e=>setFormData({...formData, orgao: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Mat. 1º cargo</label><input value={formData.mat1} onChange={e=>setFormData({...formData, mat1: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Mat. 2º cargo</label><input value={formData.mat2} onChange={e=>setFormData({...formData, mat2: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Unid. (lotação) 1º cargo</label><input value={formData.unid1} onChange={e=>setFormData({...formData, unid1: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1">Unid. (lotação) 2º cargo</label><input value={formData.unid2} onChange={e=>setFormData({...formData, unid2: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">Telefone</label><input value={formData.telefone} onChange={e=>setFormData({...formData, telefone: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1">E-mail</label><input value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500" /></div>
                   <div className="sm:col-span-2"><label className="block text-xs font-bold text-slate-600 mb-1">Situação funcional</label>
-                    <select value={formData.situacao_funcional} onChange={e=>setFormData({...formData, situacao_funcional: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500 bg-white">
+                    <select value={formData.sit} onChange={e=>setFormData({...formData, sit: e.target.value})} className="w-full h-10 px-3 text-sm border border-slate-300 rounded-lg outline-none focus:border-blue-500 bg-white">
                       <option value="">Selecione</option>
                       <option value="Efetivo(a)">Efetivo(a)</option>
                       <option value="Contratado(a)">Contratado(a)</option>
@@ -1063,17 +1062,17 @@ function DetailsModal({ row, historico, onClose, onRenovar, onBloquear, onDesblo
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Nome completo</span><strong className="text-sm text-slate-800">{row.nome || row.nome_completo || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Nome completo</span><strong className="text-sm text-slate-800">{row.nome || "—"}</strong></div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">CPF</span><strong className="text-sm text-slate-800">{row.cpf || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Cargo/Função</span><strong className="text-sm text-slate-800">{row.cargo_funcao || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Órgão (lotação)</span><strong className="text-sm text-slate-800">{row.orgao_lotacao || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Mat. 1º cargo</span><strong className="text-sm text-slate-800">{row.matricula_1 || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Mat. 2º cargo</span><strong className="text-sm text-slate-800">{row.matricula_2 || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Unid. (lotação) 1º cargo</span><strong className="text-sm text-slate-800">{row.unidade_lotacao_1 || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Unid. (lotação) 2º cargo</span><strong className="text-sm text-slate-800">{row.unidade_lotacao_2 || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Cargo/Função</span><strong className="text-sm text-slate-800">{row.cargo || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Órgão (lotação)</span><strong className="text-sm text-slate-800">{row.orgao || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Mat. 1º cargo</span><strong className="text-sm text-slate-800">{row.mat1 || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Mat. 2º cargo</span><strong className="text-sm text-slate-800">{row.mat2 || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Unid. (lotação) 1º cargo</span><strong className="text-sm text-slate-800">{row.unid1 || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Unid. (lotação) 2º cargo</span><strong className="text-sm text-slate-800">{row.unid2 || "—"}</strong></div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Telefone</span><strong className="text-sm text-slate-800">{row.telefone || "—"}</strong></div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">E-mail</span><strong className="text-sm text-slate-800 break-all">{row.email || "—"}</strong></div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Situação funcional</span><strong className="text-sm text-slate-800">{row.situacao_funcional || "—"}</strong></div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><span className="block text-xs font-bold text-slate-500 mb-0.5">Situação funcional</span><strong className="text-sm text-slate-800">{row.sit || "—"}</strong></div>
                 </div>
               )}
 
