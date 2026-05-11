@@ -8,8 +8,8 @@ import {
 
 import { supabase } from "./supabase";
 
-const ADMIN_USER = "atestadofacil";
-const ADMIN_PASS = "Admin@2026";
+const COMPROVANTES_BUCKET = "comprovantes";
+const TERMOS_BUCKET = "termos";
 
 const STATUS = {
   DISPONIVEL: "Disponível",
@@ -89,7 +89,7 @@ function baixarCSV(nomeArquivo, linhas) {
 // COMPONENTE PRINCIPAL
 // ============================================================================
 export default function AdminPanel() {
-  const [logado, setLogado] = useState(() => localStorage.getItem("painel_atestado_logado") === "sim");
+  const [logado, setLogado] = useState(false);
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [aba, setAba] = useState("Dashboard");
@@ -115,6 +115,24 @@ export default function AdminPanel() {
     setToast({ texto, tipo });
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => {
+    let ativo = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!ativo) return;
+      setLogado(Boolean(data?.session));
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLogado(Boolean(session));
+    });
+
+    return () => {
+      ativo = false;
+      listener?.subscription?.unsubscribe?.();
+    };
+  }, []);
 
   useEffect(() => { if (logado) carregar(); }, [logado]);
   useEffect(() => { setBusca(""); setFiltroMes(""); setFiltroStatus(""); setFiltroTipo(""); setMenuMobileAberto(false); }, [aba]);
@@ -257,15 +275,34 @@ export default function AdminPanel() {
     return [...novosLancamentos, ...transacoesAtuais];
   }
 
-  const entrar = (e) => {
+  const entrar = async (e) => {
     e.preventDefault();
-    if (login === ADMIN_USER && senha === ADMIN_PASS) {
-      localStorage.setItem("painel_atestado_logado", "sim");
-      setLogado(true);
-    } else aviso("Login inválido.", "erro");
+    const email = String(login || "").trim();
+    if (!email || !senha) {
+      aviso("Informe e-mail e senha do administrador.", "erro");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: senha,
+    });
+
+    if (error) {
+      console.error("Erro de login:", error);
+      aviso("Login inválido ou administrador não autorizado.", "erro");
+      return;
+    }
+
+    setLogin("");
+    setSenha("");
+    aviso("Acesso autorizado.");
   };
 
-  const sair = () => { localStorage.removeItem("painel_atestado_logado"); setLogado(false); };
+  const sair = async () => {
+    await supabase.auth.signOut();
+    setLogado(false);
+  };
 
   async function gerarNovoCodigo() {
     setGerando(true);
@@ -375,14 +412,83 @@ export default function AdminPanel() {
     await carregar(); aviso("Registro excluído.");
   }
 
+  const normalizarNomeArquivo = (nome = "arquivo") =>
+    String(nome)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .slice(0, 90);
+
+  const extrairPathStorage = (valor = "", bucket = "") => {
+    const texto = String(valor || "").trim();
+    if (!texto) return "";
+    if (!texto.startsWith("http")) return texto;
+
+    const marcador = `/storage/v1/object/public/${bucket}/`;
+    const index = texto.indexOf(marcador);
+    if (index >= 0) return decodeURIComponent(texto.slice(index + marcador.length));
+
+    const signedMarker = `/storage/v1/object/sign/${bucket}/`;
+    const signedIndex = texto.indexOf(signedMarker);
+    if (signedIndex >= 0) return decodeURIComponent(texto.slice(signedIndex + signedMarker.length).split("?")[0]);
+
+    return texto;
+  };
+
+  async function abrirArquivoPrivado(bucket, pathOuUrl) {
+    if (!pathOuUrl) return aviso("Arquivo não encontrado.", "erro");
+
+    // Compatibilidade com registros antigos que ainda estejam como URL pública.
+    if (String(pathOuUrl).startsWith("http") && !String(pathOuUrl).includes("/storage/v1/object/")) {
+      window.open(pathOuUrl, "_blank");
+      return;
+    }
+
+    const path = extrairPathStorage(pathOuUrl, bucket);
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60);
+
+    if (error || !data?.signedUrl) {
+      console.error("Erro ao gerar signed URL:", error);
+      aviso("Não foi possível abrir o arquivo. Confira o bucket e as policies do Supabase.", "erro");
+      return;
+    }
+
+    window.open(data.signedUrl, "_blank");
+  }
+
   async function anexarComprovante(transacaoId, file) {
+    if (!file) return;
     aviso("Anexando comprovante...");
-    setTimeout(async () => {
-      const fakeUrl = URL.createObjectURL(file);
-      await supabase.from("faturamento").update({ comprovante_url: fakeUrl }).eq("id", transacaoId);
-      await carregar();
-      aviso("Comprovante anexado com sucesso!");
-    }, 1000);
+
+    const extensao = file.name?.includes(".") ? file.name.split(".").pop() : "pdf";
+    const path = `comprovantes/${transacaoId}/${Date.now()}-${normalizarNomeArquivo(file.name || `comprovante.${extensao}`)}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(COMPROVANTES_BUCKET)
+      .upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Erro ao enviar comprovante:", uploadError);
+      aviso("Erro ao anexar comprovante. Confira se o bucket privado 'comprovantes' existe.", "erro");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("faturamento")
+      .update({ comprovante_url: path })
+      .eq("id", transacaoId);
+
+    if (error) {
+      console.error("Erro ao salvar caminho do comprovante:", error);
+      aviso("Arquivo enviado, mas o caminho não foi salvo no faturamento.", "erro");
+      return;
+    }
+
+    await carregar();
+    aviso("Comprovante anexado com segurança.");
   }
 
   async function alternarPagamento(row) {
@@ -498,8 +604,8 @@ export default function AdminPanel() {
           <p className="text-slate-500 mb-8">Acesse o painel administrativo</p>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1">Usuário</label>
-              <input className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={login} onChange={e => setLogin(e.target.value)} />
+              <label className="text-sm font-semibold text-slate-700 block mb-1">E-mail do administrador</label>
+              <input type="email" className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={login} onChange={e => setLogin(e.target.value)} />
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-700 block mb-1">Senha</label>
@@ -707,13 +813,13 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento, usuarios }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento, abrirArquivoPrivado, usuarios }} 
                 />
               </div>
             )}
 
             {(aba === "Documentos" || aba === "Erros") && (
-              <TableCard title={aba} subtitle={aba === "Documentos" ? "Acesse os PDFs de termos gerados pelo app." : "Log de problemas."} simple mode={aba.toLowerCase()} rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} search={busca} setSearch={setBusca} onExportar={exportarAtual} />
+              <TableCard title={aba} subtitle={aba === "Documentos" ? "Acesse os PDFs de termos gerados pelo app." : "Log de problemas."} simple mode={aba.toLowerCase()} rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ abrirArquivoPrivado }} />
             )}
 
           </div>
@@ -761,13 +867,13 @@ function ProgressBar({ label, value, total, color }) {
   );
 }
 
-function FileUploader({ transacaoId, comprovanteUrl, onUpload }) {
+function FileUploader({ transacaoId, comprovanteUrl, onUpload, onOpen }) {
   const fileRef = useRef(null);
   if (comprovanteUrl) {
     return (
-      <a href={comprovanteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
+      <button type="button" onClick={() => onOpen?.(COMPROVANTES_BUCKET, comprovanteUrl)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
         <ExternalLink size={14} /> Ver Comprovante
-      </a>
+      </button>
     );
   }
   return (
@@ -893,7 +999,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap items-center justify-center gap-4">
-                          <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} />
+                          <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
                           <button
                             type="button"
                             onClick={() => actions.alternarPagamento?.(row)}
@@ -913,7 +1019,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     {mode === 'documentos' && (
                       <td className="px-6 py-4">
                         {row.termos_pdf ? (
-                          <button onClick={() => window.open(row.termos_pdf, "_blank")} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg transition-colors">
+                          <button onClick={() => actions?.abrirArquivoPrivado?.(TERMOS_BUCKET, row.termos_pdf)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg transition-colors">
                             <FileText size={14} /> Abrir PDF
                           </button>
                         ) : (
