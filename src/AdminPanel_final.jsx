@@ -507,6 +507,30 @@ export default function AdminPanel() {
     aviso(novoStatusPago ? "Pagamento marcado como pago." : "Pagamento marcado como pendente.");
   }
 
+  async function excluirTransacao(row) {
+    const nome = row?.nome || row?.codigo || "este lançamento";
+    if (!window.confirm(`Tem certeza que deseja excluir a cobrança de ${nome}? Essa ação remove apenas o lançamento do faturamento.`)) return;
+
+    if (row?.comprovante_url) {
+      const path = extrairPathStorage(row.comprovante_url, COMPROVANTES_BUCKET);
+      await supabase.storage.from(COMPROVANTES_BUCKET).remove([path]).catch(() => null);
+    }
+
+    const { error } = await supabase
+      .from("faturamento")
+      .delete()
+      .eq("id", row.id);
+
+    if (error) {
+      console.error("Erro ao excluir cobrança:", error);
+      return aviso("Erro ao excluir cobrança do faturamento.", "erro");
+    }
+
+    await registrarHistorico(row?.codigo || row?.id, "Cobrança excluída", `Lançamento de ${row?.tipo || "faturamento"} removido do histórico de cobranças.`);
+    await carregar();
+    aviso("Cobrança excluída do faturamento.");
+  }
+
   const stats = useMemo(() => {
     const ativo = usuarios.filter(u => u.status === STATUS.ATIVO).length;
     const livre = usuarios.filter(u => u.status === STATUS.DISPONIVEL).length;
@@ -813,7 +837,7 @@ export default function AdminPanel() {
                 <TableCard 
                   title="Histórico de Cobranças" subtitle="Registros de pagamentos, com opção de anexo de comprovante." simple mode="faturamento" 
                   rows={listaTabela} meses={meses} filtroMes={filtroMes} setFiltroMes={setFiltroMes} filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} 
-                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento, abrirArquivoPrivado, usuarios }} 
+                  search={busca} setSearch={setBusca} onExportar={exportarAtual} actions={{ anexarComprovante, alternarPagamento, excluirTransacao, abrirArquivoPrivado, usuarios }} 
                 />
               </div>
             )}
@@ -869,22 +893,28 @@ function ProgressBar({ label, value, total, color }) {
 
 function FileUploader({ transacaoId, comprovanteUrl, onUpload, onOpen }) {
   const fileRef = useRef(null);
-  if (comprovanteUrl) {
-    return (
-      <button type="button" onClick={() => onOpen?.(COMPROVANTES_BUCKET, comprovanteUrl)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
-        <ExternalLink size={14} /> Ver Comprovante
-      </button>
-    );
-  }
   return (
-    <>
-      <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 hover:border-slate-400 text-slate-600 text-xs font-bold rounded-lg transition-colors">
-        <Paperclip size={14} /> Anexar
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      {comprovanteUrl ? (
+        <button type="button" onClick={() => onOpen?.(COMPROVANTES_BUCKET, comprovanteUrl)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
+          <ExternalLink size={14} /> Ver
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-bold rounded-lg transition-colors ${comprovanteUrl ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-300 text-slate-600 hover:border-slate-400"}`}
+        title={comprovanteUrl ? "Trocar comprovante" : "Anexar comprovante"}
+      >
+        <Paperclip size={14} /> {comprovanteUrl ? "Trocar" : "Anexar"}
       </button>
+
       <input type="file" ref={fileRef} className="hidden" accept="image/*,application/pdf" onChange={(e) => {
         if (e.target.files?.[0]) onUpload(transacaoId, e.target.files[0]);
+        e.target.value = "";
       }} />
-    </>
+    </div>
   );
 }
 
@@ -998,7 +1028,7 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
-                        <div className="flex flex-wrap items-center justify-center gap-4">
+                        <div className="flex flex-wrap items-center justify-center gap-3">
                           <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
                           <button
                             type="button"
@@ -1011,6 +1041,14 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                               <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
                               <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
                             </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => actions.excluirTransacao?.(row)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                            title="Excluir cobrança"
+                          >
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </td>
