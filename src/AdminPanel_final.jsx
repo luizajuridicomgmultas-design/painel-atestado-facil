@@ -894,9 +894,13 @@ function ProgressBar({ label, value, total, color }) {
 function FileUploader({ transacaoId, comprovanteUrl, onUpload, onOpen }) {
   const fileRef = useRef(null);
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="flex flex-col items-center gap-2">
       {comprovanteUrl ? (
-        <button type="button" onClick={() => onOpen?.(COMPROVANTES_BUCKET, comprovanteUrl)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors">
+        <button
+          type="button"
+          onClick={() => onOpen?.(COMPROVANTES_BUCKET, comprovanteUrl)}
+          className="inline-flex w-[118px] items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors"
+        >
           <ExternalLink size={14} /> Ver
         </button>
       ) : null}
@@ -904,7 +908,7 @@ function FileUploader({ transacaoId, comprovanteUrl, onUpload, onOpen }) {
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-bold rounded-lg transition-colors ${comprovanteUrl ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-300 text-slate-600 hover:border-slate-400"}`}
+        className={`inline-flex w-[118px] items-center justify-center gap-1.5 px-3 py-2 border text-xs font-bold rounded-lg transition-colors ${comprovanteUrl ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"}`}
         title={comprovanteUrl ? "Trocar comprovante" : "Anexar comprovante"}
       >
         <Paperclip size={14} /> {comprovanteUrl ? "Trocar" : "Anexar"}
@@ -1028,28 +1032,39 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
                     
                     {mode === 'faturamento' && (
                       <td className="px-6 py-4">
-                        <div className="flex flex-wrap items-center justify-center gap-3">
-                          <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
-                          <button
-                            type="button"
-                            onClick={() => actions.alternarPagamento?.(row)}
-                            className="rounded-xl transition-all hover:scale-[1.01]"
-                            title={isTransacaoPaga(row) ? "Pago" : "Pendente"}
-                          >
-                            <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isTransacaoPaga(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
-                              <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${isTransacaoPaga(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
-                              <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
-                              <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => actions.excluirTransacao?.(row)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-                            title="Excluir cobrança"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-3">
+                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Comprovante</span>
+                            <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
+                          </div>
+
+                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">Ação</span>
+                            <button
+                              type="button"
+                              onClick={() => actions.alternarPagamento?.(row)}
+                              className="rounded-xl transition-all hover:scale-[1.01] mt-auto mb-auto"
+                              title={isTransacaoPaga(row) ? "Pago" : "Pendente"}
+                            >
+                              <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isTransacaoPaga(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                                <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${isTransacaoPaga(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
+                                <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                                <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
+                              </span>
+                            </button>
+                          </div>
+
+                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">Excluir</span>
+                            <button
+                              type="button"
+                              onClick={() => actions.excluirTransacao?.(row)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors mt-auto mb-auto"
+                              title="Excluir cobrança"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     )}
