@@ -978,13 +978,24 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
           <thead>
             <tr className="bg-slate-50 text-xs uppercase tracking-wider font-bold text-slate-500 border-b border-slate-200">
               {simple ? (
-                <>
-                  <th className="px-6 py-4">Cliente / Info</th>
-                  <th className="px-6 py-4">Código</th>
-                  {mode === 'faturamento' && <th className="px-6 py-4">Tipo & Valor</th>}
-                  <th className="px-6 py-4">Data</th>
-                  {(mode === 'faturamento' || mode === 'documentos') && <th className="px-6 py-4">Ação / Arquivo</th>}
-                </>
+                mode === 'faturamento' ? (
+                  <>
+                    <th className="px-6 py-4">Cliente / Info</th>
+                    <th className="px-6 py-4">Código</th>
+                    <th className="px-6 py-4">Tipo & Valor</th>
+                    <th className="px-6 py-4">Data</th>
+                    <th className="px-6 py-4 text-center">Comprovante</th>
+                    <th className="px-6 py-4 text-center">Ação</th>
+                    <th className="px-6 py-4 text-center">Excluir</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-6 py-4">Cliente / Info</th>
+                    <th className="px-6 py-4">Código</th>
+                    <th className="px-6 py-4">Data</th>
+                    {mode === 'documentos' && <th className="px-6 py-4">Ação / Arquivo</th>}
+                  </>
+                )
               ) : (
                 <>
                   <th className="px-6 py-4">Código</th>
@@ -999,88 +1010,96 @@ function TableCard({ title, subtitle, rows, search, setSearch, meses, filtroMes,
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.length === 0 ? (
-              <tr><td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-medium">Nenhum registro encontrado.</td></tr>
+              <tr><td colSpan={simple ? (mode === 'faturamento' ? 7 : (mode === 'documentos' ? 4 : 3)) : 6} className="px-6 py-12 text-center text-slate-400 font-medium">Nenhum registro encontrado.</td></tr>
             ) : rows.map(row => (
               <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
                 {simple ? (
-                  <>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const clienteAtual = mode === "faturamento" ? actions?.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || "")) : null;
-                        const nomeAtual = clienteAtual?.nome || row.nome || "Não vinculado";
-                        const contatoAtual = clienteAtual?.email || clienteAtual?.telefone || row.email || row.telefone || "Lançamento Faturamento";
-                        return (
-                          <>
-                            <strong className="block text-slate-800 text-sm">{nomeAtual}</strong>
-                            <span className="text-xs text-slate-500 truncate block max-w-[250px]">
-                              {mode === "erros" ? row.ultimo_erro : mode === "documentos" ? (row.email || row.telefone) : contatoAtual}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4"><span className="font-mono text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">{row.codigo}</span></td>
-                    
-                    {mode === 'faturamento' && (
+                  mode === "faturamento" ? (
+                    <>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const clienteAtual = actions?.usuarios?.find((u) => String(u.codigo || "") === String(row.codigo || "")) || null;
+                          const nomeAtual = clienteAtual?.nome || row.nome || "Não vinculado";
+                          const contatoAtual = clienteAtual?.email || clienteAtual?.telefone || row.email || row.telefone || "Lançamento Faturamento";
+                          return (
+                            <>
+                              <strong className="block text-slate-800 text-sm">{nomeAtual}</strong>
+                              <span className="text-xs text-slate-500 truncate block max-w-[250px]">{contatoAtual}</span>
+                            </>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-4"><span className="font-mono text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">{row.codigo}</span></td>
                       <td className="px-6 py-4">
                         <strong className="block text-sm text-slate-800">{money.format(row.valor)}</strong>
                         <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold ${row.tipo === 'Alteração' ? 'bg-amber-100 text-amber-700' : row.tipo === 'Renovação' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{row.tipo}</span>
                       </td>
-                    )}
-                    
-                    <td className="px-6 py-4 text-sm text-slate-600">{formatarDataHora(row.created_at || row.data)}</td>
-                    
-                    {mode === 'faturamento' && (
-                      <td className="px-6 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-3">
-                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-2">Comprovante</span>
-                            <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
-                          </div>
-
-                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">Ação</span>
-                            <button
-                              type="button"
-                              onClick={() => actions.alternarPagamento?.(row)}
-                              className="rounded-xl transition-all hover:scale-[1.01] mt-auto mb-auto"
-                              title={isTransacaoPaga(row) ? "Pago" : "Pendente"}
-                            >
-                              <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isTransacaoPaga(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
-                                <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${isTransacaoPaga(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
-                                <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
-                                <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
-                              </span>
-                            </button>
-                          </div>
-
-                          <div className="flex flex-col items-center justify-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center min-h-[118px]">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-3">Excluir</span>
-                            <button
-                              type="button"
-                              onClick={() => actions.excluirTransacao?.(row)}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors mt-auto mb-auto"
-                              title="Excluir cobrança"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                      <td className="px-6 py-4 text-sm text-slate-600">{formatarDataHora(row.created_at || row.data)}</td>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <div className="flex justify-center">
+                          <FileUploader transacaoId={row.id} comprovanteUrl={row.comprovante_url} onUpload={actions.anexarComprovante} onOpen={actions.abrirArquivoPrivado} />
                         </div>
                       </td>
-                    )}
-
-                    {mode === 'documentos' && (
-                      <td className="px-6 py-4">
-                        {row.termos_pdf ? (
-                          <button onClick={() => actions?.abrirArquivoPrivado?.(TERMOS_BUCKET, row.termos_pdf)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg transition-colors">
-                            <FileText size={14} /> Abrir PDF
+                      <td className="px-6 py-4 text-center align-middle">
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => actions.alternarPagamento?.(row)}
+                            className="rounded-xl transition-all hover:scale-[1.01]"
+                            title={isTransacaoPaga(row) ? "Pago" : "Pendente"}
+                          >
+                            <span className={`relative inline-flex h-8 w-16 items-center rounded-full p-1 transition-all duration-300 shadow-inner ${isTransacaoPaga(row) ? "bg-gradient-to-r from-lime-500 to-green-500" : "bg-slate-300"}`}>
+                              <span className={`absolute left-3 text-[10px] font-black text-white transition-opacity ${isTransacaoPaga(row) ? "opacity-100" : "opacity-0"}`}>ON</span>
+                              <span className={`absolute right-2 text-[9px] font-black text-slate-500 transition-opacity ${isTransacaoPaga(row) ? "opacity-0" : "opacity-100"}`}>OFF</span>
+                              <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ${isTransacaoPaga(row) ? "translate-x-8" : "translate-x-0"}`} />
+                            </span>
                           </button>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Sem documento</span>
-                        )}
+                        </div>
                       </td>
-                    )}
-                  </>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => actions.excluirTransacao?.(row)}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                            title="Excluir cobrança"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const nomeAtual = row.nome || "Não vinculado";
+                          const contatoAtual = row.email || row.telefone || (mode === "erros" ? row.ultimo_erro : "Lançamento");
+                          return (
+                            <>
+                              <strong className="block text-slate-800 text-sm">{nomeAtual}</strong>
+                              <span className="text-xs text-slate-500 truncate block max-w-[250px]">
+                                {mode === "erros" ? row.ultimo_erro : mode === "documentos" ? (row.email || row.telefone) : contatoAtual}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-4"><span className="font-mono text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">{row.codigo}</span></td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{formatarDataHora(row.created_at || row.data)}</td>
+                      {mode === 'documentos' && (
+                        <td className="px-6 py-4">
+                          {row.termos_pdf ? (
+                            <button onClick={() => actions?.abrirArquivoPrivado?.(TERMOS_BUCKET, row.termos_pdf)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg transition-colors">
+                              <FileText size={14} /> Abrir PDF
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Sem documento</span>
+                          )}
+                        </td>
+                      )}
+                    </>
+                  )
                 ) : (
                   <>
                     <td className="px-6 py-4">
